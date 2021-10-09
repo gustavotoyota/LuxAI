@@ -9,8 +9,8 @@ import torch.nn.functional as F
 
 
 
-LUX_NUM_INPUTS = 19
-LUX_NUM_ACTIONS = 12
+import lux_inputs
+import lux_actions
 
 
 
@@ -79,7 +79,7 @@ class LuxModel(nn.Module):
 
     # Input
 
-    self.in_conv = nn.Conv2d(LUX_NUM_INPUTS, self.residual_num_channels, 3, padding=1, bias=False)
+    self.in_conv = nn.Conv2d(lux_inputs.INPUT_COUNT, self.residual_num_channels, 3, padding=1, bias=False)
     self.in_bn = nn.BatchNorm2d(self.residual_num_channels)
 
 
@@ -110,7 +110,7 @@ class LuxModel(nn.Module):
     self.policy_conv = nn.Conv2d(self.residual_num_channels, self.policy_num_channels, 1)
     self.policy_bn = nn.BatchNorm2d(self.policy_num_channels)
 
-    self.policy_fc = nn.Linear(self.num_pixels * self.policy_num_channels, self.num_pixels * LUX_NUM_ACTIONS)
+    self.policy_fc = nn.Linear(self.num_pixels * self.policy_num_channels, self.num_pixels * lux_actions.ACTION_COUNT)
     
 
   
