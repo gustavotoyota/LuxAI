@@ -88,7 +88,7 @@ INPUT_COUNT = len(input_list)
 
 
 def prep_input(value, dep=True):
-  if dep is None or not dep:
+  if not dep:
     return -1.0
 
   if callable(value):
