@@ -37,7 +37,7 @@ input_list.append('CityFuelUpkeep')
 
 
 
-input_list.append('UnitExists')
+input_list.append('UnitCount')
 
 input_list.append('UnitIsWorker')
 input_list.append('UnitIsCart')
