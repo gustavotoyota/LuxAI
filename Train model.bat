@@ -1,1 +1,1 @@
-python ./examples/train.py
+python ./kaggle_submissions/train.py
