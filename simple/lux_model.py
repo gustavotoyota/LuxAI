@@ -153,17 +153,17 @@ class LuxModel(nn.Module):
 
     # Policy head
 
-    action_probs = self.policy_conv(out)
-    action_probs = self.policy_bn(action_probs)
-    action_probs = F.relu(action_probs)
+    cell_action_probs = self.policy_conv(out)
+    cell_action_probs = self.policy_bn(cell_action_probs)
+    cell_action_probs = F.relu(cell_action_probs)
 
-    action_probs = action_probs.view(-1, self.num_pixels * self.policy_num_channels)
-    action_probs = self.policy_fc(action_probs)
-    action_probs = F.log_softmax(action_probs)
+    cell_action_probs = cell_action_probs.view(-1, self.num_pixels * self.policy_num_channels)
+    cell_action_probs = self.policy_fc(cell_action_probs)
+    cell_action_probs = F.log_softmax(cell_action_probs)
 
-    action_probs = action_probs.view(-1, self.policy_num_channels, self.height, self.width)
-
-
+    cell_action_probs = cell_action_probs.view(-1, self.policy_num_channels, self.height, self.width)
 
 
-    return action_probs, value
+
+
+    return cell_action_probs, value

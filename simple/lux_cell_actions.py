@@ -72,8 +72,8 @@ UNIT_ACTION_COUNT = len(cell_action_list)
 
 
 
-def get_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[Tuple]:
-  valid_cell_actions = []
+def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[Tuple]:
+  team_valid_cell_actions = []
   
 
 
@@ -99,11 +99,11 @@ def get_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[
 
 
 
-      valid_cell_actions.append((cell_action_map['BuildWorker'], city_tile.pos.y, city_tile.pos.x))
-      valid_cell_actions.append((cell_action_map['BuildCart'], city_tile.pos.y, city_tile.pos.x))
+      team_valid_cell_actions.append((cell_action_map['BuildWorker'], city_tile.pos.y, city_tile.pos.x))
+      team_valid_cell_actions.append((cell_action_map['BuildCart'], city_tile.pos.y, city_tile.pos.x))
 
       if game.state["teamStates"][team]["researchPoints"] < 200:
-        valid_cell_actions.append((cell_action_map['Research'], city_tile.pos.y, city_tile.pos.x))
+        team_valid_cell_actions.append((cell_action_map['Research'], city_tile.pos.y, city_tile.pos.x))
 
 
 
@@ -126,16 +126,16 @@ def get_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[
 
 
 
-    valid_cell_actions.append((cell_action_map['DoNothing'], unit.pos.y, unit.pos.x))
+    team_valid_cell_actions.append((cell_action_map['DoNothing'], unit.pos.y, unit.pos.x))
     
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.NORTH):
-      valid_cell_actions.append((cell_action_map['MoveNorth'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((cell_action_map['MoveNorth'], unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.WEST):
-      valid_cell_actions.append((cell_action_map['MoveWest'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((cell_action_map['MoveWest'], unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.SOUTH):
-      valid_cell_actions.append((cell_action_map['MoveSouth'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((cell_action_map['MoveSouth'], unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.EAST):
-      valid_cell_actions.append((cell_action_map['MoveEast'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((cell_action_map['MoveEast'], unit.pos.y, unit.pos.x))
 
 
 
@@ -151,7 +151,7 @@ def get_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[
         adjacent_unit: Unit
 
         if adjacent_unit.team == team and adjacent_unit.get_cargo_space_left() > 0:
-          valid_cell_actions.append((cell_action_map['SmartTransfer'], unit.pos.y, unit.pos.x))
+          team_valid_cell_actions.append((cell_action_map['SmartTransfer'], unit.pos.y, unit.pos.x))
           break
         
 
@@ -159,15 +159,15 @@ def get_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[
 
     if unit.type == UNIT_TYPES.WORKER:
       if not unit_cell.is_city_tile():
-        valid_cell_actions.append((cell_action_map['BuildCity'], unit.pos.y, unit.pos.x))
+        team_valid_cell_actions.append((cell_action_map['BuildCity'], unit.pos.y, unit.pos.x))
 
       if unit_cell.get_road() >= 0.5:
-        valid_cell_actions.append((cell_action_map['Pillage'], unit.pos.y, unit.pos.x))
+        team_valid_cell_actions.append((cell_action_map['Pillage'], unit.pos.y, unit.pos.x))
 
 
 
   
-  return valid_cell_actions
+  return team_valid_cell_actions
 
 
 
@@ -190,7 +190,7 @@ def is_move_action_valid(game: Game, team: int, pos: Position, dir: DIRECTIONS) 
 
 
 
-  cell = game.map.get_cell(target_pos)
+  cell: Cell = game.map.get_cell(target_pos)
 
 
 
@@ -206,6 +206,31 @@ def is_move_action_valid(game: Game, team: int, pos: Position, dir: DIRECTIONS) 
 
 
   return cell.has_units()
+  
+
+
+
+
+def get_cell_action_mask(game: Game, valid_cell_actions):
+  cell_action_mask = np.zeros((UNIT_ACTION_COUNT, game.map.height, game.map.width))
+
+
+  for valid_cell_action in valid_cell_actions:
+    cell_action_mask[valid_cell_action] = 1.0
+
+
+  return cell_action_mask
+
+
+
+
+
+def normalize_cell_action_probs(cell_action_probs, cell_action_mask):
+  cell_action_probs *= cell_action_mask
+  cell_action_probs /= np.sum(cell_action_probs)
+
+  return cell_action_probs
+
 
 
 

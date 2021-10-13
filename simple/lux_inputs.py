@@ -129,12 +129,13 @@ def prep_input(value, dep=True):
 
 
 
-def get_observation(game: Game, team: int):
-  input = np.zeros((INPUT_COUNT, game.map.configs['height'], game.map.configs['width']))
+def get_team_observation(game: Game, team: int):
+  team_observation = np.zeros((INPUT_COUNT, game.map.configs['height'], game.map.configs['width']))
 
 
 
-  considered_units_map = get_considered_units_map(game, team)
+
+  team_considered_units_map = get_team_considered_units_map(game, team)
 
 
 
@@ -148,20 +149,20 @@ def get_observation(game: Game, team: int):
 
       # Tile
 
-      input[input_map['TileRoadLevel'], y, x] = prep_input(cell.get_road() / 6.0)
+      team_observation[input_map['TileRoadLevel'], y, x] = prep_input(cell.get_road() / 6.0)
 
 
 
       
       # Resources
 
-      input[input_map['ResourceExists'], y, x] = prep_input(cell.has_resource())
+      team_observation[input_map['ResourceExists'], y, x] = prep_input(cell.has_resource())
 
-      input[input_map['ResourceIsWood'], y, x] = prep_input(lambda: cell.resource.type == 'wood', cell.has_resource())
-      input[input_map['ResourceIsCoal'], y, x] = prep_input(lambda: cell.resource.type == 'coal', cell.has_resource())
-      input[input_map['ResourceIsUranium'], y, x] = prep_input(lambda: cell.resource.type == 'uranium', cell.has_resource())
+      team_observation[input_map['ResourceIsWood'], y, x] = prep_input(lambda: cell.resource.type == 'wood', cell.has_resource())
+      team_observation[input_map['ResourceIsCoal'], y, x] = prep_input(lambda: cell.resource.type == 'coal', cell.has_resource())
+      team_observation[input_map['ResourceIsUranium'], y, x] = prep_input(lambda: cell.resource.type == 'uranium', cell.has_resource())
       
-      input[input_map['ResourceAmount'], y, x] = prep_input(lambda: cell.resource.amount / 350.0, cell.has_resource())
+      team_observation[input_map['ResourceAmount'], y, x] = prep_input(lambda: cell.resource.amount / 350.0, cell.has_resource())
 
 
       
@@ -170,10 +171,10 @@ def get_observation(game: Game, team: int):
 
       citytile: CityTile = cell.city_tile
 
-      input[input_map['CityTileExists'], y, x] = prep_input(citytile is not None)
+      team_observation[input_map['CityTileExists'], y, x] = prep_input(citytile is not None)
 
-      input[input_map['CityTileCooldown'], y, x] = prep_input(lambda: citytile.cooldown / 10.0, citytile)
-      input[input_map['CityTileCanAct'], y, x] = prep_input(lambda: citytile.can_act(), citytile)
+      team_observation[input_map['CityTileCooldown'], y, x] = prep_input(lambda: citytile.cooldown / 10.0, citytile)
+      team_observation[input_map['CityTileCanAct'], y, x] = prep_input(lambda: citytile.can_act(), citytile)
 
 
 
@@ -185,18 +186,18 @@ def get_observation(game: Game, team: int):
       if citytile is not None:
         city = game.cities[citytile.city_id]
 
-      input[input_map['CityFuelAmount'], y, x] = prep_input(lambda: city.fuel / 10000.0, citytile)
-      input[input_map['CityFuelUpkeep'], y, x] = prep_input(lambda: city.get_light_upkeep() / 100.0, citytile)
+      team_observation[input_map['CityFuelAmount'], y, x] = prep_input(lambda: city.fuel / 10000.0, citytile)
+      team_observation[input_map['CityFuelUpkeep'], y, x] = prep_input(lambda: city.get_light_upkeep() / 100.0, citytile)
       
       
       
       
       # Unit
 
-      considered_unit: Unit = considered_units_map[y][x]
+      considered_unit: Unit = team_considered_units_map[y][x]
 
-      input[input_map['UnitIsWorker'], y, x] = prep_input(lambda: considered_unit.is_worker(), considered_unit)
-      input[input_map['UnitIsCart'], y, x] = prep_input(lambda: considered_unit.is_cart(), considered_unit)
+      team_observation[input_map['UnitIsWorker'], y, x] = prep_input(lambda: considered_unit.is_worker(), considered_unit)
+      team_observation[input_map['UnitIsCart'], y, x] = prep_input(lambda: considered_unit.is_cart(), considered_unit)
 
       if considered_unit.is_worker():
         unit_resource_capacity = 100.0
@@ -205,16 +206,16 @@ def get_observation(game: Game, team: int):
 
       unit_fuel_capacity = 40.0 * unit_resource_capacity
 
-      input[input_map['UnitResourceSpace'], y, x] = prep_input(lambda: considered_unit.get_cargo_space_left() / unit_resource_capacity, considered_unit)
-      input[input_map['UnitFuelAmount'], y, x] = prep_input(lambda: considered_unit.get_cargo_fuel_value() / unit_fuel_capacity, considered_unit)
+      team_observation[input_map['UnitResourceSpace'], y, x] = prep_input(lambda: considered_unit.get_cargo_space_left() / unit_resource_capacity, considered_unit)
+      team_observation[input_map['UnitFuelAmount'], y, x] = prep_input(lambda: considered_unit.get_cargo_fuel_value() / unit_fuel_capacity, considered_unit)
 
       if considered_unit.is_worker():
         unit_base_cooldown = 2.0
       else:
         unit_base_cooldown = 3.0
 
-      input[input_map['UnitCooldown'], y, x] = prep_input(lambda: considered_unit.cooldown / unit_base_cooldown, considered_unit)
-      input[input_map['UnitCanAct'], y, x] = prep_input(lambda: considered_unit.can_act(), considered_unit)
+      team_observation[input_map['UnitCooldown'], y, x] = prep_input(lambda: considered_unit.cooldown / unit_base_cooldown, considered_unit)
+      team_observation[input_map['UnitCanAct'], y, x] = prep_input(lambda: considered_unit.can_act(), considered_unit)
 
 
 
@@ -254,11 +255,11 @@ def get_observation(game: Game, team: int):
 
       total_fuel_capacity = 40.0 * total_resource_capacity
       
-      input[input_map['OtherUnitsCount'], y, x] = prep_input(unit_count)
-      input[input_map['OtherUnitsWorkerCartRatio'], y, x] = prep_input(cart_count / max(1.0, unit_count))
+      team_observation[input_map['OtherUnitsCount'], y, x] = prep_input(unit_count)
+      team_observation[input_map['OtherUnitsWorkerCartRatio'], y, x] = prep_input(cart_count / max(1.0, unit_count))
 
-      input[input_map['OtherUnitsResourceSpace'], y, x] = prep_input(total_resource_space / total_resource_capacity)
-      input[input_map['OtherUnitsFuelAmount'], y, x] = prep_input(total_fuel / total_fuel_capacity)
+      team_observation[input_map['OtherUnitsResourceSpace'], y, x] = prep_input(total_resource_space / total_resource_capacity)
+      team_observation[input_map['OtherUnitsFuelAmount'], y, x] = prep_input(total_fuel / total_fuel_capacity)
 
 
       
@@ -272,37 +273,37 @@ def get_observation(game: Game, team: int):
       elif citytile is not None:
         aux_team = int(citytile.team == team)
 
-      input[input_map['TeamExists'], y, x] = prep_input(aux_team != -1)
+      team_observation[input_map['TeamExists'], y, x] = prep_input(aux_team != -1)
 
-      input[input_map['TeamIsPlayer'], y, x] = prep_input(aux_team == 1)
-      input[input_map['TeamIsOpponent'], y, x] = prep_input(aux_team == 0)
+      team_observation[input_map['TeamIsPlayer'], y, x] = prep_input(aux_team == 1)
+      team_observation[input_map['TeamIsOpponent'], y, x] = prep_input(aux_team == 0)
 
 
 
 
       # Player
 
-      input[input_map['PlayerResearchPoints'], y, x] = prep_input(game.state['researchPoints'] / 200.0)
-      input[input_map['PlayerResearchedCoal'], y, x] = prep_input(game.state['researched']['coal'])
-      input[input_map['PlayerResearchedUranium'], y, x] = prep_input(game.state['researched']['uranium'])
+      team_observation[input_map['PlayerResearchPoints'], y, x] = prep_input(game.state['researchPoints'] / 200.0)
+      team_observation[input_map['PlayerResearchedCoal'], y, x] = prep_input(game.state['researched']['coal'])
+      team_observation[input_map['PlayerResearchedUranium'], y, x] = prep_input(game.state['researched']['uranium'])
       
 
 
 
       # Game
 
-      input[input_map['GameCurrentTurn'], y, x] = prep_input(game.state['turn'] / 360.0)
+      team_observation[input_map['GameCurrentTurn'], y, x] = prep_input(game.state['turn'] / 360.0)
 
 
 
       turn_mod_40 = game.state['turn'] % 40
 
-      input[input_map['GameIsNight'], y, x] = prep_input(turn_mod_40 >= 30)
+      team_observation[input_map['GameIsNight'], y, x] = prep_input(turn_mod_40 >= 30)
 
       if turn_mod_40 < 30:
-        input[input_map['GameNightPercent'], y, x] = prep_input(turn_mod_40 / 30.0)
+        team_observation[input_map['GameNightPercent'], y, x] = prep_input(turn_mod_40 / 30.0)
       else:
-        input[input_map['GameNightPercent'], y, x] = prep_input(1.0 - (turn_mod_40 - 30.0) / 10.0)
+        team_observation[input_map['GameNightPercent'], y, x] = prep_input(1.0 - (turn_mod_40 - 30.0) / 10.0)
 
 
 
@@ -310,4 +311,8 @@ def get_observation(game: Game, team: int):
       for city in game.cities.values():
         city_tile_count[city.team] += len(city.city_cells)
 
-      input[input_map['GameCityTileRatio'], y, x] = city_tile_count[team] / float(sum(city_tile_count))
+      team_observation[input_map['GameCityTileRatio'], y, x] = city_tile_count[team] / float(sum(city_tile_count))
+
+
+
+  return team_observation

@@ -1,21 +1,21 @@
-from typing import Dict, List
+from typing import List
 from luxai2021.game.game import Game
 from luxai2021.game.unit import Unit
 
 
 
-import numpy as np
 
-
-
-def get_considered_units_map(game: Game, team: int) -> List[List[Unit]]:
+def get_team_considered_units_map(game: Game, team: int) -> List[List[Unit]]:
   considered_units_map = []
 
-  for y in range(game.map.configs['height']):
+
+
+
+  for _ in range(game.map.configs['height']):
     considered_units_row = []
     considered_units_map.append(considered_units_row)
 
-    for x in range(game.map.configs['width']):
+    for _ in range(game.map.configs['width']):
       considered_units_row.append(None)
 
 
