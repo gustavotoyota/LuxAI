@@ -1,32 +1,39 @@
 from typing import Tuple
-from scipy.special import softmax
 
 
 
-from lux_valid_cell_actions import *
+from lux_cell_actions import *
 from lux_units import *
 
 
 
 
 
-def get_action_list(game: Game, team: int):
+def get_action_list(game: Game, team: int, action_probs):
   valid_cell_actions = get_valid_cell_actions(game, team)
 
 
 
 
-  # Make dictionary of unit action lists
+  # Make dictionary of cell action lists
 
-  cell_action_list_dict: Dict[Tuple[int, int], List[int]] = {}
+  cell_actions: Dict[Tuple[int, int], List[Tuple[float, int]]] = {}
 
   for valid_cell_action in valid_cell_actions:
-    unit_key = (valid_cell_action[1], valid_cell_action[2])
+    cell_key = (valid_cell_action[1], valid_cell_action[2])
 
-    if not unit_key in cell_action_list_dict:
-      cell_action_list_dict[unit_key] = []
+    if not cell_key in cell_actions:
+      cell_actions[cell_key] = []
 
-    cell_action_list_dict[unit_key].append(valid_cell_action[0])
+    cell_actions[cell_key].append((action_probs[valid_cell_action], valid_cell_action[0]))
+
+
+
+
+  # Sort each cell actions list by descending probability
+
+  for cell_actions_list in cell_actions.values():
+    cell_actions_list.sort(reverse=True)
 
 
 
@@ -41,14 +48,14 @@ def get_action_list(game: Game, team: int):
 
 
 
-    for _, cell_action_list in cell_action_list_dict:
-      list_len = len(cell_action_list)
+    for cell_actions_list in cell_actions.values():
+      list_len = len(cell_actions_list)
 
       num_actions *= list_len
 
       if aux_list_len < list_len:
         aux_list_len = list_len
-        aux_list = cell_action_list
+        aux_list = cell_actions_list
 
 
 
@@ -59,25 +66,41 @@ def get_action_list(game: Game, team: int):
 
     # Remove the worst unit action according to the action probabilities
   
-    aux_list.remove(min(aux_list))
+    aux_list.pop()
+
+
+  
+
+  # Sort items by descending max probabilty
+  
+  sorted_cell_actions = sorted(cell_actions.items(), key=lambda item: -max(item[1]))
 
 
 
 
   # Create list of actions
 
-  return 
+  return create_action_list(sorted_cell_actions)
   
 
 
 
-def get_action_list_aux():
 
+def create_action_list(sorted_cell_actions: List[Tuple[Tuple[int, int], List[Tuple[float, int]]]],
+depth: int = 0, action: list = [], action_list: list = []):
+  if depth >= len(sorted_cell_actions):
+    action_list.append(action.copy())
+    return action_list
 
+  for cell_action in sorted_cell_actions[depth][1]:
+    cell_key = sorted_cell_actions[depth][0]
+
+    action[depth] = (cell_action, cell_key[0], cell_key[1])
+
+    create_action_list(sorted_cell_actions, depth + 1, action, action_list)
+
+  return action_list
   
-
-  
-
 
 
 
