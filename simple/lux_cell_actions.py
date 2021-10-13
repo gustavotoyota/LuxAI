@@ -162,8 +162,8 @@ def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> 
       if not unit_cell.is_city_tile():
         team_valid_cell_actions.append((cell_action_map['BuildCity'], unit.pos.y, unit.pos.x))
 
-      if unit_cell.get_road() >= 0.5:
-        team_valid_cell_actions.append((cell_action_map['Pillage'], unit.pos.y, unit.pos.x))
+        if unit_cell.get_road() >= 0.5:
+          team_valid_cell_actions.append((cell_action_map['Pillage'], unit.pos.y, unit.pos.x))
 
 
 
@@ -195,18 +195,12 @@ def is_move_action_valid(game: Game, team: int, pos: Position, dir: DIRECTIONS) 
 
 
 
-
-  if cell.has_resource():
-    return False
-
-
-
   if cell.city_tile:
     return cell.city_tile.team == team
 
 
 
-  return cell.has_units()
+  return not cell.has_units()
   
 
 
@@ -228,7 +222,7 @@ def get_cell_action_mask(game: Game, valid_cell_actions):
 
 def normalize_cell_action_probs(cell_action_probs, cell_action_mask):
   cell_action_probs *= cell_action_mask
-  cell_action_probs /= np.sum(cell_action_probs)
+  cell_action_probs /= max(1.0, np.sum(cell_action_probs).item())
 
   return cell_action_probs
 

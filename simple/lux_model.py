@@ -160,7 +160,7 @@ class LuxModel(nn.Module):
 
     cell_action_probs = cell_action_probs.view(-1, self.num_pixels * self.policy_num_channels)
     cell_action_probs = self.policy_fc(cell_action_probs)
-    cell_action_probs = F.softmax(cell_action_probs, -1)
+    cell_action_probs = F.log_softmax(cell_action_probs, -1)
 
     cell_action_probs = cell_action_probs.view(-1, CELL_ACTION_COUNT, self.height, self.width)
 

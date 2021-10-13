@@ -17,9 +17,7 @@ import copy
 
 
 class MCTS():
-  def __init__(self, game: Game, model: LuxModel):
-    self.game: Game = game
-
+  def __init__(self, model: LuxModel):
     self.model: LuxModel = model
 
     self.num_iterations = 1
@@ -27,13 +25,13 @@ class MCTS():
     
     self.current_game = None
 
-    self.reset()
 
 
 
-
-  def reset(self):
+  def reset(self, game):
     self.root: MCTSNode = MCTSNode(self)
+
+    self.game = game
 
 
 
@@ -123,8 +121,8 @@ class MCTSNode():
       team_value: Tensor
 
       team_cell_action_probs = team_cell_action_probs.detach().view(CELL_ACTION_COUNT, \
-        self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).numpy()
-      team_values[team] = team_value.detach().numpy()
+        self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).exp().numpy()
+      team_values[team] = team_value.item()
 
       team_considered_units_map = get_team_considered_units_map(self.mcts.current_game, team)
       team_valid_cell_actions = get_team_valid_cell_actions(self.mcts.current_game, team, team_considered_units_map)
@@ -145,7 +143,7 @@ class MCTSNode():
 
     for i in range(len(team_actions_list[0])):
       for j in range(len(team_actions_list[1])):
-        child_actions = (team_actions_list[0][i], team_actions_list[0][j])
+        child_actions = (team_actions_list[0][i], team_actions_list[1][j])
         child_prob = team_actions_probs[0][i] * team_actions_probs[1][j]
 
         child = MCTSNode(self.mcts, self, child_actions, child_prob)

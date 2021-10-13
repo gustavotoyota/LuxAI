@@ -20,9 +20,13 @@ def selfplay(map_size: int, model: LuxModel):
 
   game = Game(configs)
   
-  mcts = MCTS(game, model)
+  mcts = MCTS(model)
 
   while not game.match_over():
+    game.log_file = None
+    
+    mcts.reset(game)
+
     team_actions = mcts.run()
 
     env_actions = get_env_actions(team_actions, game)
