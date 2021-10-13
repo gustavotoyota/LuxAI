@@ -71,7 +71,7 @@ UNIT_ACTION_COUNT = len(cell_action_list)
 
 
 
-def get_valid_cell_actions(game: Game, team: int) -> List[Tuple]:
+def get_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[Tuple]:
   valid_cell_actions = []
   
 
@@ -108,8 +108,6 @@ def get_valid_cell_actions(game: Game, team: int) -> List[Tuple]:
 
 
   # Units
-      
-  considered_units_map = get_considered_units_map(game, team)
 
   for unit in game.get_teams_units(team):
     unit: Unit

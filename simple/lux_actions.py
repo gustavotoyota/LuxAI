@@ -9,12 +9,7 @@ from lux_units import *
 
 
 
-def get_action_list(game: Game, team: int, action_probs):
-  valid_cell_actions = get_valid_cell_actions(game, team)
-
-
-
-
+def get_action_list(game: Game, team: int, cell_action_probs, valid_cell_actions):
   # Make dictionary of cell action lists
 
   cell_actions: Dict[Tuple[int, int], List[Tuple[float, int]]] = {}
@@ -25,7 +20,7 @@ def get_action_list(game: Game, team: int, action_probs):
     if not cell_key in cell_actions:
       cell_actions[cell_key] = []
 
-    cell_actions[cell_key].append((action_probs[valid_cell_action], valid_cell_action[0]))
+    cell_actions[cell_key].append((cell_action_probs[valid_cell_action], valid_cell_action[0]))
 
 
 
@@ -116,3 +111,25 @@ def get_action_mask(game: Game, team: int):
     get_action_mask[valid_cell_action] = True
 
   return get_action_mask
+  
+
+
+
+
+def get_action_probs(action_list: List[List[tuple]], cell_action_probs):
+  action_probs = np.zeros(len(action_list))
+
+
+
+  for i in range(len(action_list)):
+    action = action_list[i]
+
+    action_prob = 1.0
+    for cell_action in action:
+      action_prob *= cell_action_probs[cell_action]
+
+    action_probs[i] = action_prob
+
+
+
+  return action_probs / np.sum(action_probs)

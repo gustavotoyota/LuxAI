@@ -21,7 +21,9 @@ input_list = []
 
 
 
+
 input_list.append('TileRoadLevel')
+
 
 
 
@@ -35,10 +37,12 @@ input_list.append('ResourceAmount')
 
 
 
+
 input_list.append('TeamExists')
 
 input_list.append('TeamIsPlayer')
 input_list.append('TeamIsOpponent')
+
 
 
 
@@ -49,24 +53,31 @@ input_list.append('CityTileCanAct')
 
 
 
+
 input_list.append('CityFuelAmount')
 input_list.append('CityFuelUpkeep')
 
 
 
-input_list.append('UnitCount')
 
 input_list.append('UnitIsWorker')
 input_list.append('UnitIsCart')
 
-input_list.append('UnitWoodAmount')
-input_list.append('UnitCoalAmount')
-input_list.append('UnitUraniumAmount')
-
-input_list.append('UnitResourceCapacity')
+input_list.append('UnitResourceSpace')
+input_list.append('UnitFuelAmount')
 
 input_list.append('UnitCooldown')
 input_list.append('UnitCanAct')
+
+
+
+
+input_list.append('OtherUnitsCount')
+input_list.append('OtherUnitsWorkerCartRatio')
+
+input_list.append('OtherUnitsResourceSpace')
+input_list.append('OtherUnitsFuelAmount')
+
 
 
 
@@ -74,6 +85,7 @@ input_list.append('PlayerResourcePoints')
 
 input_list.append('PlayerResearchedCoal')
 input_list.append('PlayerResearchedUranium')
+
 
 
 
@@ -181,31 +193,72 @@ def get_observation(game: Game, team: int):
       
       # Unit
 
-      unit: Unit = considered_units_map[y][x]
+      considered_unit: Unit = considered_units_map[y][x]
 
-      input[input_map['UnitCount'], y, x] = prep_input(len(cell.units))
+      input[input_map['UnitIsWorker'], y, x] = prep_input(lambda: considered_unit.is_worker(), considered_unit)
+      input[input_map['UnitIsCart'], y, x] = prep_input(lambda: considered_unit.is_cart(), considered_unit)
 
-      input[input_map['UnitIsWorker'], y, x] = prep_input(lambda: unit.type == 0, unit)
-      input[input_map['UnitIsCart'], y, x] = prep_input(lambda: unit.type == 1, unit)
-
-      if unit.type == 0:
-        unit_capacity = 100.0
+      if considered_unit.is_worker():
+        unit_resource_capacity = 100.0
       else:
-        unit_capacity = 2000.0
+        unit_resource_capacity = 2000.0
 
-      input[input_map['UnitWoodAmount'], y, x] = prep_input(lambda: unit.cargo['wood'] / unit_capacity, unit)
-      input[input_map['UnitCoalAmount'], y, x] = prep_input(lambda: unit.cargo['coal'] / unit_capacity, unit)
-      input[input_map['UnitUraniumAmount'], y, x] = prep_input(lambda: unit.cargo['uranium'] / unit_capacity, unit)
+      unit_fuel_capacity = 40.0 * unit_resource_capacity
 
-      input[input_map['UnitResourceCapacity'], y, x] = prep_input(lambda: unit.get_cargo_space_left() / unit_capacity, unit)
+      input[input_map['UnitResourceSpace'], y, x] = prep_input(lambda: considered_unit.get_cargo_space_left() / unit_resource_capacity, considered_unit)
+      input[input_map['UnitFuelAmount'], y, x] = prep_input(lambda: considered_unit.get_cargo_fuel_value() / unit_fuel_capacity, considered_unit)
 
-      if unit.type == 0:
+      if considered_unit.is_worker():
         unit_base_cooldown = 2.0
       else:
         unit_base_cooldown = 3.0
 
-      input[input_map['UnitCooldown'], y, x] = prep_input(lambda: unit.cooldown / unit_base_cooldown, unit)
-      input[input_map['UnitCanAct'], y, x] = prep_input(lambda: unit.can_act(), unit)
+      input[input_map['UnitCooldown'], y, x] = prep_input(lambda: considered_unit.cooldown / unit_base_cooldown, considered_unit)
+      input[input_map['UnitCanAct'], y, x] = prep_input(lambda: considered_unit.can_act(), considered_unit)
+
+
+
+
+      # Other units
+
+      unit_count = 0
+      cart_count = 0
+
+      total_resource_space = 0
+      total_resource_capacity = 0.0
+
+      total_fuel = 0
+
+      for unit in cell.units:
+        unit: Unit
+
+        if unit.team != team:
+          continue
+
+        if unit == considered_unit:
+          continue
+
+        unit_count = unit_count + 1
+
+        if unit.is_cart():
+          cart_count = cart_count + 1
+
+        total_fuel += unit.get_cargo_fuel_value()
+
+        total_resource_space += unit.get_cargo_space_left()
+        
+        if unit.is_worker():
+          total_resource_capacity += 100.0
+        else:
+          total_resource_capacity += 2000.0
+
+      total_fuel_capacity = 40.0 * total_resource_capacity
+      
+      input[input_map['OtherUnitsCount'], y, x] = prep_input(unit_count)
+      input[input_map['OtherUnitsWorkerCartRatio'], y, x] = prep_input(cart_count / max(1.0, unit_count))
+
+      input[input_map['OtherUnitsResourceSpace'], y, x] = prep_input(total_resource_space / total_resource_capacity)
+      input[input_map['OtherUnitsFuelAmount'], y, x] = prep_input(total_fuel / total_fuel_capacity)
 
 
       
@@ -214,15 +267,15 @@ def get_observation(game: Game, team: int):
 
       aux_team = -1
       
-      if unit is not None:
-        aux_team = int(unit.team != team)
+      if considered_unit is not None:
+        aux_team = int(considered_unit.team == team)
       elif citytile is not None:
-        aux_team = int(citytile.team != team)
+        aux_team = int(citytile.team == team)
 
       input[input_map['TeamExists'], y, x] = prep_input(aux_team != -1)
 
-      input[input_map['TeamIsPlayer'], y, x] = prep_input(aux_team == 0)
-      input[input_map['TeamIsOpponent'], y, x] = prep_input(aux_team == 1)
+      input[input_map['TeamIsPlayer'], y, x] = prep_input(aux_team == 1)
+      input[input_map['TeamIsOpponent'], y, x] = prep_input(aux_team == 0)
 
 
 
@@ -242,14 +295,14 @@ def get_observation(game: Game, team: int):
 
 
 
-      turn_mod_360 = game.state['turn'] % 360
+      turn_mod_40 = game.state['turn'] % 40
 
-      input[input_map['GameIsNight'], y, x] = prep_input(turn_mod_360 >= 30)
+      input[input_map['GameIsNight'], y, x] = prep_input(turn_mod_40 >= 30)
 
-      if turn_mod_360 < 30:
-        input[input_map['GameNightPercent'], y, x] = prep_input(turn_mod_360 / 30.0)
+      if turn_mod_40 < 30:
+        input[input_map['GameNightPercent'], y, x] = prep_input(turn_mod_40 / 30.0)
       else:
-        input[input_map['GameNightPercent'], y, x] = prep_input(1.0 - (turn_mod_360 - 30.0) / 10.0)
+        input[input_map['GameNightPercent'], y, x] = prep_input(1.0 - (turn_mod_40 - 30.0) / 10.0)
 
 
 
