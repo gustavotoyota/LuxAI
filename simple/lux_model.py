@@ -1,4 +1,5 @@
 import numpy as np
+from torch.functional import Tensor
 
 
 
@@ -64,7 +65,7 @@ class LuxModel(nn.Module):
 
 
     self.residual_num_channels = 128
-    self.residual_num_blocks = 12
+    self.residual_num_blocks = 8
 
 
 
@@ -112,7 +113,7 @@ class LuxModel(nn.Module):
     self.policy_conv = nn.Conv2d(self.residual_num_channels, self.policy_num_channels, 1)
     self.policy_bn = nn.BatchNorm2d(self.policy_num_channels)
 
-    self.policy_fc = nn.Linear(self.num_pixels * self.policy_num_channels, self.num_pixels * UNIT_ACTION_COUNT)
+    self.policy_fc = nn.Linear(self.num_pixels * self.policy_num_channels, self.num_pixels * CELL_ACTION_COUNT)
     
 
   
@@ -129,8 +130,8 @@ class LuxModel(nn.Module):
 
     # Residual blocks
 
-    for block in self.residual_blocks:
-      out = block(out)
+    for residual_block in self.residual_blocks:
+      out = residual_block(out)
       
 
 
@@ -146,7 +147,7 @@ class LuxModel(nn.Module):
     value = F.relu(value)
 
     value = self.value_fc2(value)
-    value = F.tanh(value)
+    value = torch.tanh(value)
 
 
 
@@ -159,9 +160,9 @@ class LuxModel(nn.Module):
 
     cell_action_probs = cell_action_probs.view(-1, self.num_pixels * self.policy_num_channels)
     cell_action_probs = self.policy_fc(cell_action_probs)
-    cell_action_probs = F.log_softmax(cell_action_probs)
+    cell_action_probs = F.softmax(cell_action_probs, -1)
 
-    cell_action_probs = cell_action_probs.view(-1, self.policy_num_channels, self.height, self.width)
+    cell_action_probs = cell_action_probs.view(-1, CELL_ACTION_COUNT, self.height, self.width)
 
 
 

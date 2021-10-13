@@ -1,4 +1,4 @@
-from lux_actions import get_game_actions
+from lux_actions import get_team_env_action
 from luxai2021.game.game import Game
 
 
@@ -11,25 +11,29 @@ from lux_actions import *
 
 
 import math
+import copy
 
 
 
 
 class MCTS():
-  def __init__(self, model: LuxModel, game: Game):
-    self.model = model
-
+  def __init__(self, game: Game, model: LuxModel):
     self.game: Game = game
 
-    self.num_iterations = 500
+    self.model: LuxModel = model
+
+    self.num_iterations = 1
     self.c_puct = 1.0
+    
+    self.current_game = None
+
+    self.reset()
 
 
 
 
-  def reset(self, updates):
+  def reset(self):
     self.root: MCTSNode = MCTSNode(self)
-    self.updates = updates
 
 
 
@@ -40,7 +44,7 @@ class MCTS():
 
     best_child = max(self.root.children, key=lambda child: child.num_visits)
 
-    return best_child.team_actions[0]
+    return best_child.team_actions
 
 
 
@@ -48,14 +52,17 @@ class MCTS():
   def playout(self):
     node: MCTSNode = self.root
 
-    self.game.reset(self.updates)
+    self.current_game = copy.deepcopy(self.game)
 
     while not node.is_leaf():
       node = node.select_child()
       
-      self.game.run_turn_with_actions(node.team_actions[0] + node.team_actions[1])
+      self.current_game.run_turn_with_actions(node.team_actions[0] + node.team_actions[1])
 
-    leaf_value = node.expand()
+    if not self.current_game.match_over():
+      leaf_value = node.expand()
+    else:
+      leaf_value = float(self.current_game.get_winning_team() == 0)
 
     node.backup(leaf_value)
   
@@ -77,7 +84,7 @@ class MCTSNode():
 
     self.cumul_value = 0.0
 
-    self.children: List[MCTSNode] = {}
+    self.children: List[MCTSNode] = []
 
 
 
@@ -86,7 +93,7 @@ class MCTSNode():
     return max(self.children, key=lambda child: child.get_value())
 
   def get_value(self):
-    mean_value = self.cumul_value / self.num_visits
+    mean_value = self.cumul_value / max(1.0, self.num_visits)
 
     adjusted_prior_prob = (self.mcts.c_puct * self.prior_prob *
       math.sqrt(self.parent.num_visits) / (1.0 + self.num_visits))
@@ -99,8 +106,8 @@ class MCTSNode():
   def expand(self):
     team_values = [0.0, 0.0]
 
-    team_actions = []
-    team_action_probs = []
+    team_actions_list = []
+    team_actions_probs = []
 
 
 
@@ -108,31 +115,38 @@ class MCTSNode():
     # Get team actions and probabilities
 
     for team in range(2):
-      observation = get_team_observation(self.mcts.game, team)
+      team_observation = get_team_observation(self.mcts.current_game, team)
 
-      cell_action_probs, team_values[team] = self.mcts.model(observation)
+      team_cell_action_probs, team_value = self.mcts.model(team_observation)
 
-      considered_units_map = get_team_considered_units_map(self.mcts.game, team)
-      valid_cell_actions = get_team_valid_cell_actions(self.mcts.game, team, considered_units_map)
+      team_cell_action_probs: Tensor
+      team_value: Tensor
 
-      cell_action_mask = get_cell_action_mask(self.mcts.game, valid_cell_actions)
-      cell_action_probs = normalize_cell_action_probs(cell_action_probs, cell_action_mask)
+      team_cell_action_probs = team_cell_action_probs.detach().view(CELL_ACTION_COUNT, \
+        self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).numpy()
+      team_values[team] = team_value.detach().numpy()
 
-      actions = get_team_actions(self.mcts.game, team, cell_action_probs, valid_cell_actions)
-      action_probs = get_action_probs(actions, cell_action_probs)
+      team_considered_units_map = get_team_considered_units_map(self.mcts.current_game, team)
+      team_valid_cell_actions = get_team_valid_cell_actions(self.mcts.current_game, team, team_considered_units_map)
 
-      team_actions.append(actions)
-      team_action_probs.append(action_probs)
+      team_cell_action_mask = get_cell_action_mask(self.mcts.current_game, team_valid_cell_actions)
+      team_cell_action_probs = normalize_cell_action_probs(team_cell_action_probs, team_cell_action_mask)
+
+      team_actions = get_team_actions(self.mcts.current_game, team, team_cell_action_probs, team_valid_cell_actions)
+      team_action_probs = get_team_action_probs(team_actions, team_cell_action_probs)
+
+      team_actions_list.append(team_actions)
+      team_actions_probs.append(team_action_probs)
 
 
 
 
     # Create children
 
-    for i in range(len(team_actions[0])):
-      for j in range(len(team_actions[1])):
-        child_actions = (team_actions[0][i], team_actions[0][j])
-        child_prob = team_action_probs[0][i] * team_action_probs[1][j]
+    for i in range(len(team_actions_list[0])):
+      for j in range(len(team_actions_list[1])):
+        child_actions = (team_actions_list[0][i], team_actions_list[0][j])
+        child_prob = team_actions_probs[0][i] * team_actions_probs[1][j]
 
         child = MCTSNode(self.mcts, self, child_actions, child_prob)
 

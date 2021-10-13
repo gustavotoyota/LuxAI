@@ -7,7 +7,7 @@ def get_cell_team(cell: Cell) -> int:
   if cell.city_tile:
     return cell.city_tile.team
 
-  for unit in cell.units:
+  for _, unit in cell.units:
     unit: Unit
     return unit.team
 

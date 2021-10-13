@@ -20,7 +20,7 @@ def get_team_considered_units_map(game: Game, team: int) -> List[List[Unit]]:
 
 
 
-  for unit in game.get_teams_units(team):
+  for unit in game.get_teams_units(team).values():
     unit: Unit
 
     if unit.team != team:

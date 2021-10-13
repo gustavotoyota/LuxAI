@@ -64,9 +64,9 @@ for i in range(len(cell_action_list)):
 
 
 
-# Unit action count
+# Cell action count
 
-UNIT_ACTION_COUNT = len(cell_action_list)
+CELL_ACTION_COUNT = len(cell_action_list)
 
 
 
@@ -79,7 +79,7 @@ def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> 
 
   # Cities
 
-  for _, city in game.cities:
+  for city in game.cities.values():
     city: City
 
 
@@ -89,8 +89,9 @@ def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> 
 
 
 
-    for city_tile in city.city_cells:
-      city_tile: CityTile
+    for city_cell in city.city_cells:
+      city_cell: Cell
+      city_tile: CityTile = city_cell.city_tile
 
 
 
@@ -110,7 +111,7 @@ def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> 
 
   # Units
 
-  for unit in game.get_teams_units(team):
+  for unit in game.get_teams_units(team).values():
     unit: Unit
 
 
@@ -147,7 +148,7 @@ def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> 
     for adjacent_cell in game.map.get_adjacent_cells(unit_cell):
       adjacent_cell: Cell
 
-      for adjacent_unit in adjacent_cell.units:
+      for adjacent_unit in adjacent_cell.units.values():
         adjacent_unit: Unit
 
         if adjacent_unit.team == team and adjacent_unit.get_cargo_space_left() > 0:
@@ -190,7 +191,7 @@ def is_move_action_valid(game: Game, team: int, pos: Position, dir: DIRECTIONS) 
 
 
 
-  cell: Cell = game.map.get_cell(target_pos)
+  cell: Cell = game.map.get_cell_by_pos(target_pos)
 
 
 
@@ -212,7 +213,7 @@ def is_move_action_valid(game: Game, team: int, pos: Position, dir: DIRECTIONS) 
 
 
 def get_cell_action_mask(game: Game, valid_cell_actions):
-  cell_action_mask = np.zeros((UNIT_ACTION_COUNT, game.map.height, game.map.width))
+  cell_action_mask = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width))
 
 
   for valid_cell_action in valid_cell_actions:
@@ -235,52 +236,57 @@ def normalize_cell_action_probs(cell_action_probs, cell_action_mask):
 
 
 
-def get_game_action(cell_action: tuple, game: Game, team: int, considered_units_map: List[List[Unit]]) -> Action:
-  considered_unit = considered_units_map[cell_action[1]][cell_action[2]]
+def get_team_env_cell_action(cell_action: tuple, game: Game,
+team: int, team_considered_units_map: List[List[Unit]]) -> Action:
+  considered_unit = team_considered_units_map[cell_action[1]][cell_action[2]]
 
 
 
 
   # City tile actions
 
-  game_action: Action
+  game_action: Action = None
 
-  if not considered_unit:
-    if cell_action == cell_action_map['BuildWorker']:
-      game_action = SpawnWorkerAction(team, 0, cell_action[2], cell_action[1])
-    elif cell_action == cell_action_map['BuildCart']:
-      game_action = SpawnCartAction(team, 0, cell_action[2], cell_action[1])
-    elif cell_action == cell_action_map['Research']:
-      game_action = ResearchAction(team, cell_action[2], cell_action[1], 0)
+  if cell_action[0] == cell_action_map['BuildWorker']:
+    game_action = SpawnWorkerAction(team, 0, cell_action[2], cell_action[1])
+  elif cell_action[0] == cell_action_map['BuildCart']:
+    game_action = SpawnCartAction(team, 0, cell_action[2], cell_action[1])
+  elif cell_action[0] == cell_action_map['Research']:
+    game_action = ResearchAction(team, cell_action[2], cell_action[1], 0)
 
   
   
   
   # Unit actions
 
-  else:
-    if cell_action == cell_action_map['DoNothing']:
+  if considered_unit:
+    if cell_action[0] == cell_action_map['DoNothing']:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.CENTER)
 
-    elif cell_action == cell_action_map['MoveNorth']:
+    elif cell_action[0] == cell_action_map['MoveNorth']:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.NORTH)
-    elif cell_action == cell_action_map['MoveWest']:
+    elif cell_action[0] == cell_action_map['MoveWest']:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.WEST)
-    elif cell_action == cell_action_map['MoveSouth']:
+    elif cell_action[0] == cell_action_map['MoveSouth']:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.SOUTH)
-    elif cell_action == cell_action_map['MoveEast']:
+    elif cell_action[0] == cell_action_map['MoveEast']:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.EAST)
 
-    elif cell_action == cell_action_map['SmartTransfer']:
+    elif cell_action[0] == cell_action_map['SmartTransfer']:
       game_action = smart_transfer(game, team, considered_unit)
 
 
 
-    elif cell_action == cell_action_map['BuildCity']: 
+    elif cell_action[0] == cell_action_map['BuildCity']: 
       game_action = SpawnCityAction(team, considered_unit.id)
-    elif cell_action == cell_action_map['Pillage']:
+    elif cell_action[0] == cell_action_map['Pillage']:
       game_action = PillageAction(team, considered_unit.id)
   
+
+
+
+  if not game_action:
+    print('Error')
 
 
 

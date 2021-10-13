@@ -1,3 +1,4 @@
+import torch
 from luxai2021.game.city import City, CityTile
 from luxai2021.game.game import Game
 from luxai2021.game.unit import Unit
@@ -81,7 +82,7 @@ input_list.append('OtherUnitsFuelAmount')
 
 
 
-input_list.append('PlayerResourcePoints')
+input_list.append('PlayerResearchPoints')
 
 input_list.append('PlayerResearchedCoal')
 input_list.append('PlayerResearchedUranium')
@@ -196,23 +197,21 @@ def get_team_observation(game: Game, team: int):
 
       considered_unit: Unit = team_considered_units_map[y][x]
 
+      if considered_unit:
+        if considered_unit.is_worker():
+          unit_resource_capacity = 100.0
+          unit_base_cooldown = 2.0
+        else:
+          unit_resource_capacity = 2000.0
+          unit_base_cooldown = 3.0
+
+        unit_fuel_capacity = 40.0 * unit_resource_capacity
+
       team_observation[input_map['UnitIsWorker'], y, x] = prep_input(lambda: considered_unit.is_worker(), considered_unit)
       team_observation[input_map['UnitIsCart'], y, x] = prep_input(lambda: considered_unit.is_cart(), considered_unit)
 
-      if considered_unit.is_worker():
-        unit_resource_capacity = 100.0
-      else:
-        unit_resource_capacity = 2000.0
-
-      unit_fuel_capacity = 40.0 * unit_resource_capacity
-
       team_observation[input_map['UnitResourceSpace'], y, x] = prep_input(lambda: considered_unit.get_cargo_space_left() / unit_resource_capacity, considered_unit)
       team_observation[input_map['UnitFuelAmount'], y, x] = prep_input(lambda: considered_unit.get_cargo_fuel_value() / unit_fuel_capacity, considered_unit)
-
-      if considered_unit.is_worker():
-        unit_base_cooldown = 2.0
-      else:
-        unit_base_cooldown = 3.0
 
       team_observation[input_map['UnitCooldown'], y, x] = prep_input(lambda: considered_unit.cooldown / unit_base_cooldown, considered_unit)
       team_observation[input_map['UnitCanAct'], y, x] = prep_input(lambda: considered_unit.can_act(), considered_unit)
@@ -230,7 +229,7 @@ def get_team_observation(game: Game, team: int):
 
       total_fuel = 0
 
-      for unit in cell.units:
+      for unit in cell.units.values():
         unit: Unit
 
         if unit.team != team:
@@ -258,8 +257,8 @@ def get_team_observation(game: Game, team: int):
       team_observation[input_map['OtherUnitsCount'], y, x] = prep_input(unit_count)
       team_observation[input_map['OtherUnitsWorkerCartRatio'], y, x] = prep_input(cart_count / max(1.0, unit_count))
 
-      team_observation[input_map['OtherUnitsResourceSpace'], y, x] = prep_input(total_resource_space / total_resource_capacity)
-      team_observation[input_map['OtherUnitsFuelAmount'], y, x] = prep_input(total_fuel / total_fuel_capacity)
+      team_observation[input_map['OtherUnitsResourceSpace'], y, x] = prep_input(total_resource_space / max(1.0, total_resource_capacity))
+      team_observation[input_map['OtherUnitsFuelAmount'], y, x] = prep_input(total_fuel / max(1.0, total_fuel_capacity))
 
 
       
@@ -283,9 +282,11 @@ def get_team_observation(game: Game, team: int):
 
       # Player
 
-      team_observation[input_map['PlayerResearchPoints'], y, x] = prep_input(game.state['researchPoints'] / 200.0)
-      team_observation[input_map['PlayerResearchedCoal'], y, x] = prep_input(game.state['researched']['coal'])
-      team_observation[input_map['PlayerResearchedUranium'], y, x] = prep_input(game.state['researched']['uranium'])
+      team_state = game.state['teamStates'][team]
+
+      team_observation[input_map['PlayerResearchPoints'], y, x] = prep_input(team_state['researchPoints'] / 200.0)
+      team_observation[input_map['PlayerResearchedCoal'], y, x] = prep_input(team_state['researched']['coal'])
+      team_observation[input_map['PlayerResearchedUranium'], y, x] = prep_input(team_state['researched']['uranium'])
       
 
 
@@ -296,9 +297,10 @@ def get_team_observation(game: Game, team: int):
 
 
 
-      turn_mod_40 = game.state['turn'] % 40
 
-      team_observation[input_map['GameIsNight'], y, x] = prep_input(turn_mod_40 >= 30)
+      team_observation[input_map['GameIsNight'], y, x] = prep_input(game.is_night())
+      
+      turn_mod_40 = game.state['turn'] % 40
 
       if turn_mod_40 < 30:
         team_observation[input_map['GameNightPercent'], y, x] = prep_input(turn_mod_40 / 30.0)
@@ -311,8 +313,8 @@ def get_team_observation(game: Game, team: int):
       for city in game.cities.values():
         city_tile_count[city.team] += len(city.city_cells)
 
-      team_observation[input_map['GameCityTileRatio'], y, x] = city_tile_count[team] / float(sum(city_tile_count))
+      team_observation[input_map['GameCityTileRatio'], y, x] = prep_input(city_tile_count[team] / float(sum(city_tile_count)))
 
 
 
-  return team_observation
+  return torch.Tensor(team_observation).unsqueeze(0)
