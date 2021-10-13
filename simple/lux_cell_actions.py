@@ -1,5 +1,6 @@
 from typing import List, Tuple
-from luxai2021.game.actions import UNIT_TYPES
+from lux.constants import Constants
+from luxai2021.game.actions import UNIT_TYPES, Action, MoveAction, PillageAction, ResearchAction, SpawnCartAction, SpawnCityAction, SpawnWorkerAction, TransferAction
 from luxai2021.game.cell import Cell
 from luxai2021.game.city import City, CityTile
 from luxai2021.game.game import DIRECTIONS, Game
@@ -40,8 +41,8 @@ cell_action_list.append('DoNothing')
 
 cell_action_list.append('MoveNorth')
 cell_action_list.append('MoveWest')
-cell_action_list.append('MoveEast')
 cell_action_list.append('MoveSouth')
+cell_action_list.append('MoveEast')
 
 cell_action_list.append('SmartTransfer')
 
@@ -131,10 +132,10 @@ def get_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[
       valid_cell_actions.append((cell_action_map['MoveNorth'], unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.WEST):
       valid_cell_actions.append((cell_action_map['MoveWest'], unit.pos.y, unit.pos.x))
-    if is_move_action_valid(game, team, unit.pos, DIRECTIONS.EAST):
-      valid_cell_actions.append((cell_action_map['MoveEast'], unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.SOUTH):
       valid_cell_actions.append((cell_action_map['MoveSouth'], unit.pos.y, unit.pos.x))
+    if is_move_action_valid(game, team, unit.pos, DIRECTIONS.EAST):
+      valid_cell_actions.append((cell_action_map['MoveEast'], unit.pos.y, unit.pos.x))
 
 
 
@@ -205,3 +206,143 @@ def is_move_action_valid(game: Game, team: int, pos: Position, dir: DIRECTIONS) 
 
 
   return cell.has_units()
+
+
+
+
+def get_game_action(cell_action: tuple, game: Game, team: int, considered_units_map: List[List[Unit]]) -> Action:
+  considered_unit = considered_units_map[cell_action[1]][cell_action[2]]
+
+
+
+
+  # City tile actions
+
+  game_action: Action
+
+  if not considered_unit:
+    if cell_action == cell_action_map['BuildWorker']:
+      game_action = SpawnWorkerAction(team, 0, cell_action[2], cell_action[1])
+    elif cell_action == cell_action_map['BuildCart']:
+      game_action = SpawnCartAction(team, 0, cell_action[2], cell_action[1])
+    elif cell_action == cell_action_map['Research']:
+      game_action = ResearchAction(team, cell_action[2], cell_action[1], 0)
+
+  
+  
+  
+  # Unit actions
+
+  else:
+    if cell_action == cell_action_map['DoNothing']:
+      game_action = MoveAction(team, considered_unit.id, DIRECTIONS.CENTER)
+
+    elif cell_action == cell_action_map['MoveNorth']:
+      game_action = MoveAction(team, considered_unit.id, DIRECTIONS.NORTH)
+    elif cell_action == cell_action_map['MoveWest']:
+      game_action = MoveAction(team, considered_unit.id, DIRECTIONS.WEST)
+    elif cell_action == cell_action_map['MoveSouth']:
+      game_action = MoveAction(team, considered_unit.id, DIRECTIONS.SOUTH)
+    elif cell_action == cell_action_map['MoveEast']:
+      game_action = MoveAction(team, considered_unit.id, DIRECTIONS.EAST)
+
+    elif cell_action == cell_action_map['SmartTransfer']:
+      game_action = smart_transfer(game, team, considered_unit)
+
+
+
+    elif cell_action == cell_action_map['BuildCity']: 
+      game_action = SpawnCityAction(team, considered_unit.id)
+    elif cell_action == cell_action_map['Pillage']:
+      game_action = PillageAction(team, considered_unit.id)
+  
+
+
+
+  return game_action
+
+
+
+
+
+def smart_transfer(game: Game, team: int, unit: Unit, target_type_restriction=None, **kwarg):
+  """
+  Smart-transfers from the specified unit to a nearby neighbor. Prioritizes any
+  nearby carts first, then any worker. Transfers the resource type which the unit
+  has most of. Picks which cart/worker based on choosing a target that is most-full
+  but able to take the most amount of resources.
+
+  Args:
+    team ([type]): [description]
+    unit_id ([type]): [description]
+
+  Returns:
+    Action: Returns a TransferAction object, even if the request is an invalid
+        transfer. Use TransferAction.is_valid() to check validity.
+  """
+
+  # Calculate how much resources could at-most be transferred
+  resource_type = None
+  resource_amount = 0
+  target_unit: Unit = None
+
+  if unit != None:
+    for type, amount in unit.cargo.items():
+      if amount > resource_amount:
+        resource_type = type
+        resource_amount = amount
+
+    # Find the best nearby unit to transfer to
+    unit_cell = game.map.get_cell_by_pos(unit.pos)
+    adjacent_cells = game.map.get_adjacent_cells(unit_cell)
+
+    
+    for c in adjacent_cells:
+      c: Cell
+
+      for id, u in c.units.items():
+        u: Unit
+
+        # Apply the unit type target restriction
+        if target_type_restriction == None or u.type == target_type_restriction:
+          if u.team == team:
+            # This unit belongs to our team, set it as the winning transfer target
+            # if it's the best match.
+            if target_unit is None:
+              target_unit = u
+            else:
+              # Compare this unit to the existing target
+              if target_unit.type == u.type:
+                # Transfer to the target with the least capacity, but can accept
+                # all of our resources
+                if( u.get_cargo_space_left() >= resource_amount and 
+                  target_unit.get_cargo_space_left() >= resource_amount ):
+                  # Both units can accept all our resources. Prioritize one that is most-full.
+                  if u.get_cargo_space_left() < target_unit.get_cargo_space_left():
+                    # This new target it better, it has less space left and can take all our
+                    # resources
+                    target_unit = u
+                  
+                elif( target_unit.get_cargo_space_left() >= resource_amount ):
+                  # Don't change targets. Current one is best since it can take all
+                  # the resources, but new target can't.
+                  pass
+                  
+                elif( u.get_cargo_space_left() > target_unit.get_cargo_space_left() ):
+                  # Change targets, because neither target can accept all our resources and 
+                  # this target can take more resources.
+                  target_unit = u
+              elif u.type == Constants.UNIT_TYPES.CART:
+                # Transfer to this cart instead of the current worker target
+                target_unit = u
+  
+  # Build the transfer action request
+  target_unit_id = None
+  if target_unit is not None:
+    target_unit_id = target_unit.id
+
+    # Update the transfer amount based on the room of the target
+    if target_unit.get_cargo_space_left() < resource_amount:
+      resource_amount = target_unit.get_cargo_space_left()
+  
+  return TransferAction(team, unit.id, target_unit_id, resource_type, resource_amount)

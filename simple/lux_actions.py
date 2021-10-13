@@ -4,6 +4,7 @@ from typing import Tuple
 
 from lux_cell_actions import *
 from lux_units import *
+from luxai2021.game.actions import Action, MoveAction, ResearchAction, SpawnCartAction, SpawnWorkerAction
 
 
 
@@ -111,7 +112,20 @@ def get_action_mask(game: Game, team: int):
     get_action_mask[valid_cell_action] = True
 
   return get_action_mask
-  
+
+
+
+
+def get_game_actions(action: List[tuple], game: Game, team: int,
+considered_units_map: List[List[Unit]]) -> List[Action]:
+  game_actions = []
+
+
+  for cell_action in action:
+    game_actions.append(get_game_action(cell_action, game, team, considered_units_map))
+
+
+  return game_actions
 
 
 
