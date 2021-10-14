@@ -72,7 +72,7 @@ CELL_ACTION_COUNT = len(cell_action_list)
 
 
 
-def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> List[Tuple]:
+def get_team_valid_cell_actions(game: Game, team: int, team_considered_units_map: List[List[Unit]]) -> List[Tuple]:
   team_valid_cell_actions = []
   
 
@@ -116,7 +116,7 @@ def get_team_valid_cell_actions(game: Game, team: int, considered_units_map) -> 
 
 
 
-    if considered_units_map[unit.pos.y][unit.pos.x] != unit:
+    if team_considered_units_map[unit.pos.y][unit.pos.x] != unit:
       continue
 
 
@@ -275,12 +275,6 @@ team: int, team_considered_units_map: List[List[Unit]]) -> Action:
       game_action = SpawnCityAction(team, considered_unit.id)
     elif cell_action[0] == cell_action_map['Pillage']:
       game_action = PillageAction(team, considered_unit.id)
-  
-
-
-
-  if not game_action:
-    print('Error')
 
 
 

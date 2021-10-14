@@ -16,6 +16,11 @@ import copy
 
 
 
+from timeit import default_timer as timer
+
+
+
+
 class MCTS():
   def __init__(self, model: LuxModel):
     self.model: LuxModel = model
@@ -50,6 +55,7 @@ class MCTS():
   def playout(self):
     node: MCTSNode = self.root
 
+    self.game.log_file = None
     self.current_game = copy.deepcopy(self.game)
 
     while not node.is_leaf():
@@ -113,9 +119,17 @@ class MCTSNode():
     # Get team actions and probabilities
 
     for team in range(2):
-      team_observation = get_team_observation(self.mcts.current_game, team)
+      team_considered_units_map = get_team_considered_units_map(self.mcts.current_game, team)
 
+      start = timer()
+      team_observation = get_team_observation(self.mcts.current_game, team, team_considered_units_map)
+      end = timer()
+      print('Observation:', end - start)
+
+      start = timer()
       team_cell_action_probs, team_value = self.mcts.model(team_observation)
+      end = timer()
+      print('Model', end - start)
 
       team_cell_action_probs: Tensor
       team_value: Tensor
@@ -124,7 +138,6 @@ class MCTSNode():
         self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).exp().numpy()
       team_values[team] = team_value.item()
 
-      team_considered_units_map = get_team_considered_units_map(self.mcts.current_game, team)
       team_valid_cell_actions = get_team_valid_cell_actions(self.mcts.current_game, team, team_considered_units_map)
 
       team_cell_action_mask = get_cell_action_mask(self.mcts.current_game, team_valid_cell_actions)
