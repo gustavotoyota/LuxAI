@@ -142,12 +142,10 @@ class MCTSNode():
 
     child_list = []
 
-    for i in range(2):
-      one_minus_i = 1 - i
-
-      for j in range(len(team_actions_list[i])):
-        child_actions = (team_actions_list[i][j], team_actions_list[one_minus_i][0])
-        child_prob = team_actions_probs[i][j] * team_actions_probs[one_minus_i][0]
+    for i in range(len(team_actions_list[0])):
+      for j in range(len(team_actions_list[1])):
+        child_actions = (team_actions_list[0][i], team_actions_list[1][j])
+        child_prob = team_actions_probs[0][i] * team_actions_probs[1][j]
 
         child = MCTSNode(self.mcts, self, child_actions, child_prob)
 
