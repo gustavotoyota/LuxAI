@@ -25,7 +25,7 @@ class MCTS():
   def __init__(self, model: LuxModel):
     self.model: LuxModel = model
 
-    self.num_iterations = 1
+    self.num_iterations = 100
     self.c_puct = 1.0
     
     self.current_game = None
@@ -121,20 +121,14 @@ class MCTSNode():
     for team in range(2):
       team_considered_units_map = get_team_considered_units_map(self.mcts.current_game, team)
 
-      start = timer()
       team_observation = get_team_observation(self.mcts.current_game, team, team_considered_units_map)
-      end = timer()
-      print('Observation:', end - start)
 
-      start = timer()
-      team_cell_action_probs, team_value = self.mcts.model(team_observation)
-      end = timer()
-      print('Model', end - start)
+      team_cell_action_log_probs, team_value = self.mcts.model(team_observation)
 
-      team_cell_action_probs: Tensor
+      team_cell_action_log_probs: Tensor
       team_value: Tensor
 
-      team_cell_action_probs = team_cell_action_probs.detach().view(CELL_ACTION_COUNT, \
+      team_cell_action_probs = team_cell_action_log_probs.detach().view(CELL_ACTION_COUNT, \
         self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).exp().numpy()
       team_values[team] = team_value.item()
 

@@ -32,7 +32,6 @@ def selfplay(map_size: int, model: LuxModel):
     game.run_turn_with_actions(env_actions)
 
     print(game.state['turn'])
-    print(game.map.get_map_string())
 
   print('Winner: ' + str(game.get_winning_team()))
 

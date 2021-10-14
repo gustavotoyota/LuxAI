@@ -55,7 +55,7 @@ def get_team_actions(game: Game, team: int, cell_action_probs, valid_cell_action
 
 
 
-    if num_actions <= 32:
+    if num_actions <= max(16, len(cell_actions)):
       break
 
 
