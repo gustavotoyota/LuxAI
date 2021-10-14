@@ -1,5 +1,3 @@
-from lux_actions import get_env_actions
-from lux_mcts import MCTS
 from luxai2021.game.game import Game
 
 
@@ -8,7 +6,9 @@ import torch
 
 
 
-from lux_model import LuxModel
+from lux_actions import *
+from lux_mcts import *
+from lux_model import *
 
 
 
