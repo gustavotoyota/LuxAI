@@ -44,7 +44,7 @@ class MCTS():
     for _ in range(self.num_iterations):
       self.playout()
 
-    best_child = max(self.root.children, key=lambda child: child.num_visits)
+    best_child = max(self.root.children, key=lambda child: child.num_visits_plus_1)
 
     return best_child.team_actions
 
@@ -75,7 +75,7 @@ class MCTS():
 
 class MCTSNode():
   def __init__(self, mcts: MCTS, parent = None,
-  team_actions: Tuple[List, List] = None, prior_prob: float = 0):
+  team_actions: Tuple[List, List] = None, prior_prob: float = 0.0):
     self.mcts = mcts
 
     self.parent: MCTSNode = parent
@@ -83,9 +83,11 @@ class MCTSNode():
     self.team_actions: Tuple[List, List] = team_actions
 
     self.prior_prob = prior_prob # Multiplied probability of both teams' actions
-    self.num_visits = 0
-
+    self.num_visits_plus_1 = 1.0
     self.cumul_value = 0.0
+    self.mean_value = 0.0
+
+    self.aux_value = 0.0
 
     self.children: List[MCTSNode] = []
 
@@ -93,15 +95,14 @@ class MCTSNode():
 
 
   def select_child(self):
+    self.aux_value = self.mcts.c_puct * math.sqrt(self.num_visits_plus_1 - 1.0)
+
     return max(self.children, key=lambda child: child.get_value())
 
   def get_value(self):
-    mean_value = self.cumul_value / max(1.0, self.num_visits)
+    adjusted_prior_prob = self.parent.aux_value * self.prior_prob / self.num_visits_plus_1
 
-    adjusted_prior_prob = (self.mcts.c_puct * self.prior_prob *
-      math.sqrt(self.parent.num_visits) / (1.0 + self.num_visits))
-
-    return mean_value + adjusted_prior_prob
+    return self.mean_value + adjusted_prior_prob
 
 
 
@@ -164,9 +165,9 @@ class MCTSNode():
 
 
   def backup(self, leaf_value):
-    self.num_visits += 1
-
     self.cumul_value += leaf_value
+    self.mean_value = self.cumul_value / self.num_visits_plus_1
+    self.num_visits_plus_1 += 1.0
 
     if not self.is_root():
       self.parent.backup(leaf_value)
