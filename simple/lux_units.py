@@ -5,7 +5,7 @@ from luxai2021.game.unit import Unit
 
 
 
-def get_team_considered_units_map(game: Game, team: int) -> List[List[Unit]]:
+def get_considered_units_map(game: Game) -> List[List[Unit]]:
   considered_units_map = []
 
 
@@ -20,16 +20,14 @@ def get_team_considered_units_map(game: Game, team: int) -> List[List[Unit]]:
 
 
 
-  for unit in game.get_teams_units(team).values():
-    unit: Unit
+  for team in range(2):
+    for unit in game.get_teams_units(team).values():
+      unit: Unit
 
-    if unit.team != team:
-      continue
+      if considered_units_map[unit.pos.y][unit.pos.x]:
+        continue
 
-    if considered_units_map[unit.pos.y][unit.pos.x]:
-      continue
-
-    considered_units_map[unit.pos.y][unit.pos.x] = unit
+      considered_units_map[unit.pos.y][unit.pos.x] = unit
 
 
 

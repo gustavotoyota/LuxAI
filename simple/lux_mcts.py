@@ -28,7 +28,7 @@ class MCTS():
   def __init__(self, model: LuxModel):
     self.model: LuxModel = model
 
-    self.num_iterations = 100
+    self.num_iterations = 1
     self.c_puct = 1.0
     
     self.game: Game = None
@@ -37,7 +37,7 @@ class MCTS():
 
 
 
-  def run(self, game: Game):
+  def run(self, game: Game) -> List[tuple]:
     self.root: MCTSNode = MCTSNode(self)
 
     self.game: Game = game
@@ -109,11 +109,11 @@ class MCTSNode():
 
 
     # Get team actions and probabilities
+    
+    considered_units_map = get_considered_units_map(self.mcts.current_game)
 
     for team in range(2):
-      team_considered_units_map = get_team_considered_units_map(self.mcts.current_game, team)
-
-      team_observation = get_team_observation(self.mcts.current_game, team, team_considered_units_map)
+      team_observation = get_team_observation(self.mcts.current_game, team, considered_units_map)
 
       team_cell_action_log_probs, team_value = self.mcts.model(team_observation)
 
@@ -124,7 +124,7 @@ class MCTSNode():
         self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).exp().cpu().numpy()
       team_values[team] = team_value.item()
 
-      team_valid_cell_actions = get_team_valid_cell_actions(self.mcts.current_game, team, team_considered_units_map)
+      team_valid_cell_actions = get_team_valid_cell_actions(self.mcts.current_game, team, considered_units_map)
 
       team_cell_action_mask = get_cell_action_mask(self.mcts.current_game, team_valid_cell_actions)
       team_cell_action_probs = normalize_cell_action_probs(team_cell_action_probs, team_cell_action_mask)

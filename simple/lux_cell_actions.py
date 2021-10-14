@@ -15,7 +15,6 @@ import numpy as np
 
 
 
-from lux_utils import *
 from lux_units import *
 
 
@@ -72,7 +71,8 @@ CELL_ACTION_COUNT = len(cell_action_list)
 
 
 
-def get_team_valid_cell_actions(game: Game, team: int, team_considered_units_map: List[List[Unit]]) -> List[Tuple]:
+def get_team_valid_cell_actions(game: Game, team: int,
+considered_units_map: List[List[Unit]]) -> List[Tuple]:
   team_valid_cell_actions = []
   
 
@@ -116,7 +116,7 @@ def get_team_valid_cell_actions(game: Game, team: int, team_considered_units_map
 
 
 
-    if team_considered_units_map[unit.pos.y][unit.pos.x] != unit:
+    if considered_units_map[unit.pos.y][unit.pos.x] != unit:
       continue
 
 
@@ -231,8 +231,8 @@ def normalize_cell_action_probs(cell_action_probs, cell_action_mask):
 
 
 def get_team_env_cell_action(cell_action: tuple, game: Game,
-team: int, team_considered_units_map: List[List[Unit]]) -> Action:
-  considered_unit = team_considered_units_map[cell_action[1]][cell_action[2]]
+team: int, considered_units_map: List[List[Unit]]) -> Action:
+  considered_unit = considered_units_map[cell_action[1]][cell_action[2]]
 
 
 

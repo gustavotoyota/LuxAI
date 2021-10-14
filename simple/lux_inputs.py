@@ -115,7 +115,7 @@ INPUT_COUNT = len(input_list)
 
 
 
-def get_team_observation(game: Game, team: int, team_considered_units_map: List[List[Unit]]):
+def get_team_observation(game: Game, team: int, considered_units_map: List[List[Unit]]):
   team_observation = np.zeros((INPUT_COUNT, game.map.configs['height'], game.map.configs['width']))
 
 
@@ -193,7 +193,7 @@ def get_team_observation(game: Game, team: int, team_considered_units_map: List[
       
       # Unit
 
-      considered_unit: Unit = team_considered_units_map[y][x]
+      considered_unit: Unit = considered_units_map[y][x]
 
       if considered_unit:
         if considered_unit.is_worker():

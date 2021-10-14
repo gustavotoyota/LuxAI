@@ -136,14 +136,13 @@ considered_units_map: List[List[Unit]]) -> List[List[Action]]:
 
 
 
-def get_env_actions(team_actions: Tuple[list, list], game: Game) -> Tuple[List[Action], List[Action]]:
+def get_env_actions(game: Game, team_actions: Tuple[list, list], 
+considered_units_map: List[List[Unit]]) -> Tuple[List[Action], List[Action]]:
   env_actions = []
 
 
   for team in range(2):
-    team_considered_units_map = get_team_considered_units_map(game, team)
-    
-    env_actions += get_team_env_actions(team_actions[team], game, team, team_considered_units_map)
+    env_actions += get_team_env_actions(team_actions[team], game, team, considered_units_map)
 
 
   return env_actions
@@ -168,3 +167,16 @@ def get_team_action_probs(team_actions: List[List[tuple]], cell_action_probs):
 
 
   return team_action_probs / np.sum(team_action_probs)
+
+
+
+
+def get_team_action_policy(game: Game, team_action: List[tuple]):
+  team_action_policy = np.zeros((CELL_ACTION_COUNT, game.configs['width'], game.configs['height']))
+
+
+  for cell_action in team_action:
+    team_action_policy[cell_action] = 1.0
+
+
+  return team_action_policy
