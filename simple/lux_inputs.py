@@ -144,7 +144,7 @@ def get_team_observation(game: Game, team: int, team_considered_units_map: List[
         team_observation[INPUT_RESOURCE_IS_COAL, y, x] = float(cell.resource.type == 'coal') * 2.0 - 1.0
         team_observation[INPUT_RESOURCE_IS_URANIUM, y, x] = float(cell.resource.type == 'uranium') * 2.0 - 1.0
         
-        team_observation[INPUT_RESOURCE_AMOUNT, y, x] = cell.resource.amount / 350.0 * 2.0 - 1.0
+        team_observation[INPUT_RESOURCE_AMOUNT, y, x] = cell.resource.amount / 800.0 * 2.0 - 1.0
       else:
         team_observation[INPUT_RESOURCE_EXISTS, y, x] = -1.0
         

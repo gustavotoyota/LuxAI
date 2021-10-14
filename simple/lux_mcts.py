@@ -45,10 +45,6 @@ class MCTS():
     for _ in range(self.num_iterations):
       self.playout()
 
-
-
-
-  def get_best_actions(self):
     best_child = max(self.root.children, key=lambda child: child.num_visits)
 
     return best_child.team_actions
