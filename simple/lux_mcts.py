@@ -27,24 +27,25 @@ class MCTS():
     self.num_iterations = 100
     self.c_puct = 1.0
     
-    self.current_game = None
+    self.game: Game = None
+    self.current_game: Game = None
 
 
 
 
-  def reset(self, game):
+  def run(self, game: Game):
     self.root: MCTSNode = MCTSNode(self)
 
-    self.game = game
+    self.game: Game = game
 
-
-
-
-  def run(self):
     for _ in range(self.num_iterations):
       self.playout()
 
-    best_child = max(self.root.children, key=lambda child: child.num_visits_plus_1)
+
+
+
+  def get_best_actions(self):
+    best_child = max(self.root.children, key=lambda child: child.num_visits)
 
     return best_child.team_actions
 
@@ -55,7 +56,7 @@ class MCTS():
     node: MCTSNode = self.root
 
     self.game.log_file = None
-    self.current_game = copy.deepcopy(self.game)
+    self.current_game: Game = copy.deepcopy(self.game)
 
     while not node.is_leaf():
       node = node.select_child()
@@ -81,13 +82,11 @@ class MCTSNode():
     self.parent: MCTSNode = parent
 
     self.team_actions: Tuple[List, List] = team_actions
-
-    self.prior_prob = prior_prob # Multiplied probability of both teams' actions
-    self.num_visits_plus_1 = 1.0
+    
+    self.num_visits = 0
     self.cumul_value = 0.0
-    self.mean_value = 0.0
 
-    self.aux_value = 0.0
+    self.aux_value = prior_prob
 
     self.children: List[MCTSNode] = []
 
@@ -95,14 +94,7 @@ class MCTSNode():
 
 
   def select_child(self):
-    self.aux_value = self.mcts.c_puct * math.sqrt(self.num_visits_plus_1 - 1.0)
-
-    return max(self.children, key=lambda child: child.get_value())
-
-  def get_value(self):
-    adjusted_prior_prob = self.parent.aux_value * self.prior_prob / self.num_visits_plus_1
-
-    return self.mean_value + adjusted_prior_prob
+    return max(self.children, key=lambda child: child.aux_value)
 
 
 
@@ -165,12 +157,15 @@ class MCTSNode():
 
 
   def backup(self, leaf_value):
+    self.num_visits += 1
     self.cumul_value += leaf_value
-    self.mean_value = self.cumul_value / self.num_visits_plus_1
-    self.num_visits_plus_1 += 1.0
 
-    if not self.is_root():
-      self.parent.backup(leaf_value)
+    if self.is_root():
+      return
+
+    self.aux_value -= 0.25 ** leaf_value
+
+    self.parent.backup(leaf_value)
 
 
 

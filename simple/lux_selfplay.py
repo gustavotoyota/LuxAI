@@ -19,9 +19,9 @@ def selfplay(map_size: int, model: LuxModel):
   mcts = MCTS(model)
 
   while not game.match_over():
-    mcts.reset(game)
+    mcts.run(game)
 
-    team_actions = mcts.run()
+    team_actions = mcts.get_best_actions()
 
     env_actions = get_env_actions(team_actions, game)
 
