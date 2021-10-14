@@ -1,3 +1,7 @@
+from sortedcontainers import SortedList
+
+
+
 from luxai2021.game.game import Game
 
 
@@ -88,13 +92,13 @@ class MCTSNode():
 
     self.aux_value = prior_prob
 
-    self.children: List[MCTSNode] = []
+    self.children = SortedList(key=lambda item: -item.aux_value)
 
 
 
 
   def select_child(self):
-    return max(self.children, key=lambda child: child.aux_value)
+    return self.children[0]
 
 
 
@@ -140,6 +144,8 @@ class MCTSNode():
 
     # Create children
 
+    child_list = []
+
     for i in range(len(team_actions_list[0])):
       for j in range(len(team_actions_list[1])):
         child_actions = (team_actions_list[0][i], team_actions_list[1][j])
@@ -147,7 +153,9 @@ class MCTSNode():
 
         child = MCTSNode(self.mcts, self, child_actions, child_prob)
 
-        self.children.append(child)
+        child_list.append(child)
+
+    self.children.update(child_list)
 
 
 
@@ -163,7 +171,9 @@ class MCTSNode():
     if self.is_root():
       return
 
+    self.parent.children.remove(self)
     self.aux_value -= 0.25 ** leaf_value
+    self.parent.children.add(self)
 
     self.parent.backup(leaf_value)
 
