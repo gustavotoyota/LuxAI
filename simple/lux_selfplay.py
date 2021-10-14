@@ -1,9 +1,5 @@
-from typing import Dict
-
-from lux_actions import get_env_actions, get_team_env_actions
-from lux_inputs import get_team_observation
+from lux_actions import get_env_actions
 from lux_mcts import MCTS
-from luxai2021.game.constants import LuxMatchConfigs_Default
 from luxai2021.game.game import Game
 
 

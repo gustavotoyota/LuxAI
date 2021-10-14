@@ -1,4 +1,3 @@
-from lux_actions import get_team_env_action
 from luxai2021.game.game import Game
 
 

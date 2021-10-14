@@ -121,11 +121,6 @@ def get_team_observation(game: Game, team: int, team_considered_units_map: List[
 
 
 
-  team_considered_units_map = get_team_considered_units_map(game, team)
-
-
-
-
   for y in range(game.map.configs['height']):
     for x in range(game.map.configs['width']):
       cell = game.map.get_cell(x, y)
