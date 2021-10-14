@@ -121,7 +121,7 @@ class MCTSNode():
       team_value: Tensor
 
       team_cell_action_probs = team_cell_action_log_probs.detach().view(CELL_ACTION_COUNT, \
-        self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).exp().numpy()
+        self.mcts.current_game.configs['width'], self.mcts.current_game.configs['height']).exp().cpu().numpy()
       team_values[team] = team_value.item()
 
       team_valid_cell_actions = get_team_valid_cell_actions(self.mcts.current_game, team, team_considered_units_map)

@@ -4,6 +4,10 @@ from luxai2021.game.game import Game
 
 
 
+import torch
+
+
+
 from lux_model import LuxModel
 
 
@@ -30,4 +34,7 @@ def selfplay(map_size: int, model: LuxModel):
   print('Winner: ' + str(game.get_winning_team()))
 
 
+if torch.cuda.is_available():
+  torch.set_default_tensor_type(torch.cuda.FloatTensor)
+  
 selfplay(12, LuxModel(12, 12))
