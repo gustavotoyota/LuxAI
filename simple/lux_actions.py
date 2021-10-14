@@ -5,6 +5,7 @@ from typing import Dict, Tuple
 from lux_cell_actions import *
 from lux_units import *
 from luxai2021.game.actions import Action
+from sortedcontainers.sortedlist import SortedList
 
 
 
@@ -33,43 +34,45 @@ def get_team_actions(game: Game, team: int, cell_action_probs, valid_cell_action
 
 
 
+  
+  sorted_cell_actions = SortedList(cell_actions.items(), key=lambda item: -len(item[1]))
+
+
+
 
   # Limit amount of actions
 
+  num_actions = 1
+  for _, cell_actions_list in sorted_cell_actions:
+    num_actions *= len(cell_actions_list)
+
+
+
+    
   while True:
-    num_actions = 1
-
-    aux_list_len = 0
-    aux_list: List[int] = None
-
-
-
-    for cell_actions_list in cell_actions.values():
-      list_len = len(cell_actions_list)
-
-      num_actions *= list_len
-
-      if aux_list_len < list_len:
-        aux_list_len = list_len
-        aux_list = cell_actions_list
-
-
-
-    if num_actions <= max(16, len(cell_actions)):
+    if num_actions <= 16:
       break
 
 
 
     # Remove the worst unit action according to the action probabilities
-  
-    aux_list.pop()
+
+    cell_actions = sorted_cell_actions[0]
+
+    sorted_cell_actions.remove(cell_actions)
+
+    num_actions //= len(cell_actions[1])
+    cell_actions[1].pop()
+    num_actions *= len(cell_actions[1])
+
+    sorted_cell_actions.add(cell_actions)
+    
 
 
   
-
   # Sort cell actions by descending max probabilty
   
-  sorted_cell_actions = sorted(list(cell_actions.items()), key=lambda item: item[1][0])
+  sorted_cell_actions = sorted(list(sorted_cell_actions), key=lambda item: item[1][0])
 
 
 
@@ -79,27 +82,27 @@ def get_team_actions(game: Game, team: int, cell_action_probs, valid_cell_action
   team_action = [None] * len(sorted_cell_actions)
   team_actions = []
 
-  return get_team_actions_aux(sorted_cell_actions, team_action, team_actions)
+  create_team_actions_aux(sorted_cell_actions, team_action, team_actions)
+
+  return team_actions
   
 
 
 
 
-def get_team_actions_aux(sorted_cell_actions: List[Tuple[Tuple[int, int], List[Tuple[float, int]]]],
-team_action: list, team_actions: list, depth: int = 0):
+def create_team_actions_aux(sorted_cell_actions: List[Tuple[Tuple[int, int],
+List[Tuple[float, int]]]], team_action: list, team_actions: list, depth: int = 0):
   if depth >= len(sorted_cell_actions):
     team_actions.append(team_action.copy())
     
-    return team_actions
+    return
 
   for cell_action in sorted_cell_actions[depth][1]:
     cell_key = sorted_cell_actions[depth][0]
 
     team_action[depth] = (cell_action[1], cell_key[0], cell_key[1])
 
-    get_team_actions_aux(sorted_cell_actions, team_action, team_actions, depth + 1)
-
-  return team_actions
+    create_team_actions_aux(sorted_cell_actions, team_action, team_actions, depth + 1)
 
 
 
