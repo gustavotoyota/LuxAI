@@ -11,11 +11,11 @@ def get_considered_units_map(game: Game) -> List[List[Unit]]:
 
 
 
-  for _ in range(game.map.configs['height']):
+  for _ in range(game.map.height):
     considered_units_row = []
     considered_units_map.append(considered_units_row)
 
-    for _ in range(game.map.configs['width']):
+    for _ in range(game.map.width):
       considered_units_row.append(None)
 
 

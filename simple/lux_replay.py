@@ -1,20 +1,20 @@
-
-
-
 import json
+import os
+from os import makedirs
+import time
+import pickle
+
+
+
+
+from luxai2021.game.actions import Action
+from luxai2021.game.constants import Constants
 
 
 
 from lux_inputs import *
-
-
-
-from lux.game import Game
-from lux.game_objects import Unit, City, CityTile
-from lux.game_map import Cell, RESOURCE_TYPES
-from lux.constants import Constants
-from lux.game_constants import GAME_CONSTANTS
-from lux import annotate
+from lux_env_actions import *
+from lux_cell_actions import *
 
 
 
@@ -26,289 +26,126 @@ def study_replay(file_path):
 
 
 
-  game = Game()
+  game = Game({'seed': replay['configuration']['seed']})
 
-  game._initialize(replay['steps'][0][0]['observation']['updates'])
+  team_histories = ([], [])
 
-  for step in replay['steps']:
-    game._update(step[0]['observation']['updates'])
+  #for step_obj in replay['steps'][1:]:
+  while not game.match_over():
+    step_obj = replay['steps'][game.state['turn'] + 1]
+
+    env_actions = []
     
-    considered_units_map = get_replay_considered_units_map(game)
+    considered_units_map = get_considered_units_map(game)
 
-    team_observation = get_replay_team_observation(game, 0, considered_units_map)
-    team_observation = get_replay_team_observation(game, 1, considered_units_map)
+    for team in range(2):
+      team_observation = get_team_observation(game, team, considered_units_map).numpy().squeeze()
+
+      team_env_actions = []
+      
+      for action in step_obj[team]['action']:
+        env_action = game.action_from_string(action, team)
+
+        if not is_env_action_valid(env_action, game, env_actions):
+          continue
+
+        team_env_actions.append(env_action)
+        env_actions.append(env_action)
+
+      team_cell_actions = get_replay_team_cell_actions(game, team, team_env_actions, considered_units_map)
+
+      team_histories[team].append((team_observation, team_cell_actions))
+
+    game.run_turn_with_actions(env_actions)
+
+    print('Turn:', game.state['turn'])
+    # print(game.map.get_map_string())
 
 
 
 
-
-def get_replay_considered_units_map(game: Game) -> List[List[Unit]]:
-  considered_units_map = []
-
-
-
-
-  for _ in range(game.map.height):
-    considered_units_row = []
-    considered_units_map.append(considered_units_row)
-
-    for _ in range(game.map.width):
-      considered_units_row.append(None)
+  # if (game.state['turn'] == 359 and len(replay['steps']) == 361) \
+  # or game.state['turn'] == len(replay['steps']) - 1:
+  #   print('Success!')
+  # else:
+  #   print('Fail!')
 
 
+
+
+  # Create samples
+
+  samples = []
+
+  winning_team = game.get_winning_team()
 
   for team in range(2):
-    for unit in game.players[team].units:
-      unit: Unit
+    target_value = float(winning_team == team) * 2.0 - 1.0
 
-      if considered_units_map[unit.pos.y][unit.pos.x]:
+    for experience in team_histories[team]:
+      samples.append((experience[0], experience[1], target_value))
+
+
+
+
+  # Save samples
+
+  replay_id = os.path.splitext(os.path.basename(file_path))[0]
+
+  if not os.path.isdir(f'samples/{game.map.width}'):
+    makedirs(f'samples/{game.map.width}')
+
+  with open(f'samples/{game.map.width}/{replay_id}.pickle', 'wb') as f:
+    pickle.dump(samples, f)
+
+
+
+
+def get_replay_team_cell_actions(game: Game, team: int,
+team_env_actions: List[Action], considered_units_map: List[List[Unit]]):
+  team_cell_actions = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width))
+
+
+
+  for team_env_action in team_env_actions:
+    if team_env_action.action == Constants.ACTIONS.BUILD_WORKER:
+      team_cell_actions[CELL_ACTION_BUILD_WORKER, team_env_action.y, team_env_action.x] = 1.0
+    elif team_env_action.action == Constants.ACTIONS.BUILD_CART:
+      team_cell_actions[CELL_ACTION_BUILD_CART, team_env_action.y, team_env_action.x] = 1.0
+    elif team_env_action.action == Constants.ACTIONS.RESEARCH:
+      team_cell_actions[CELL_ACTION_RESEARCH, team_env_action.y, team_env_action.x] = 1.0
+    else:
+      if team_env_action.action == Constants.ACTIONS.TRANSFER:
+        unit: Unit = game.get_unit(team, team_env_action.source_id)
+      else:
+        unit: Unit = game.get_unit(team, team_env_action.unit_id)
+
+      if unit != considered_units_map[unit.pos.y][unit.pos.x]:
         continue
 
-      considered_units_map[unit.pos.y][unit.pos.x] = unit
-
-
-
-  return considered_units_map
-
-
-
-def get_replay_team_observation(game: Game, team: int, considered_units_map: List[List[Unit]]):
-  team_observation = np.zeros((INPUT_COUNT, game.map.height, game.map.width))
-
-
-
-
-  # Units map
-
-  units_map: List[List[List[Unit]]] = [None] * game.map.height
-
-  for y in range(game.map.height):
-    units_row: List[List[Unit]] = [None] * game.map.width
-    units_map[y] = units_row
-    
-    for x in range(game.map.width):
-      units_cell: List[Unit] = []
-      units_row[x] = units_cell
-
-  for team in range(2):
-    for unit in game.players[team].units:
-      units_map[y][x].append(unit)
-
-
-
-
-  for y in range(game.map.height):
-    for x in range(game.map.width):
-      cell = game.map.get_cell(x, y)
-
-
-
-
-      # Tile
-
-      team_observation[INPUT_TILE_ROAD_LEVEL, y, x] = cell.road / 6.0 * 2.0 - 1.0
-
-
-
-      
-      # Resources
-      
-      if cell.has_resource():
-        team_observation[INPUT_RESOURCE_EXISTS, y, x] = 1.0
-        
-        team_observation[INPUT_RESOURCE_IS_WOOD, y, x] = float(cell.resource.type == 'wood') * 2.0 - 1.0
-        team_observation[INPUT_RESOURCE_IS_COAL, y, x] = float(cell.resource.type == 'coal') * 2.0 - 1.0
-        team_observation[INPUT_RESOURCE_IS_URANIUM, y, x] = float(cell.resource.type == 'uranium') * 2.0 - 1.0
-        
-        team_observation[INPUT_RESOURCE_AMOUNT, y, x] = cell.resource.amount / 800.0 * 2.0 - 1.0
-      else:
-        team_observation[INPUT_RESOURCE_EXISTS, y, x] = -1.0
-        
-        team_observation[INPUT_RESOURCE_IS_WOOD, y, x] = -1.0
-        team_observation[INPUT_RESOURCE_IS_COAL, y, x] = -1.0
-        team_observation[INPUT_RESOURCE_IS_URANIUM, y, x] = -1.0
-        
-        team_observation[INPUT_RESOURCE_AMOUNT, y, x] = -1.0
-
-
-      
-      
-      # City tile
-
-      citytile: CityTile = cell.citytile
-
-      if citytile:
-        team_observation[INPUT_CITY_TILE_EXISTS, y, x] = 1.0
-
-        team_observation[INPUT_CITY_TILE_COOLDOWN, y, x] = citytile.cooldown / 10.0 * 2.0 - 1.0
-        team_observation[INPUT_CITY_TILE_CAN_ACT, y, x] = float(citytile.can_act()) * 2.0 - 1.0
-      else:
-        team_observation[INPUT_CITY_TILE_EXISTS, y, x] = -1.0
-
-        team_observation[INPUT_CITY_TILE_COOLDOWN, y, x] = -1.0
-        team_observation[INPUT_CITY_TILE_CAN_ACT, y, x] = -1.0
-
-
-
-      
-      # City
-
-      city: City = None
-
-      if citytile:
-        city = game.players[0].cities.get(citytile.cityid)
-        if not city:
-          city = game.players[1].cities.get(citytile.cityid)
-
-        team_observation[INPUT_CITY_FUEL_AMOUNT, y, x] = city.fuel / 10000.0 * 2.0 - 1.0
-        team_observation[INPUT_CITY_FUEL_UPKEEP, y, x] = city.get_light_upkeep() / 100.0 * 2.0 - 1.0
-      else:
-        team_observation[INPUT_CITY_FUEL_AMOUNT, y, x] = -1.0
-        team_observation[INPUT_CITY_FUEL_UPKEEP, y, x] = -1.0
-      
-      
-      
-      
-      # Unit
-
-      considered_unit: Unit = considered_units_map[y][x]
-
-      if considered_unit:
-        if considered_unit.is_worker():
-          unit_resource_capacity = 100.0
-          unit_base_cooldown = 2.0
-        else:
-          unit_resource_capacity = 2000.0
-          unit_base_cooldown = 3.0
-
-        unit_fuel_capacity = 40.0 * unit_resource_capacity
-
-        team_observation[INPUT_UNIT_IS_WORKER, y, x] = float(considered_unit.is_worker()) * 2.0 - 1.0
-        team_observation[INPUT_UNIT_IS_CART, y, x] = float(considered_unit.is_cart()) * 2.0 - 1.0
-
-        team_observation[INPUT_UNIT_RESOURCE_SPACE, y, x] = considered_unit.get_cargo_space_left() / unit_resource_capacity * 2.0 - 1.0
-        
-        cargo_fuel = considered_unit.cargo.wood
-        cargo_fuel += considered_unit.cargo.coal * 10
-        cargo_fuel += considered_unit.cargo.uranium * 40
-
-        team_observation[INPUT_UNIT_FUEL_AMOUNT, y, x] = cargo_fuel / unit_fuel_capacity * 2.0 - 1.0
-
-        team_observation[INPUT_UNIT_COOLDOWN, y, x] = considered_unit.cooldown / unit_base_cooldown * 2.0 - 1.0
-        team_observation[INPUT_UNIT_CAN_ACT, y, x] = float(considered_unit.can_act()) * 2.0 - 1.0
-      else:
-
-        team_observation[INPUT_UNIT_IS_WORKER, y, x] = -1.0
-        team_observation[INPUT_UNIT_IS_CART, y, x] = -1.0
-
-        team_observation[INPUT_UNIT_RESOURCE_SPACE, y, x] = -1.0
-        team_observation[INPUT_UNIT_FUEL_AMOUNT, y, x] = -1.0
-
-        team_observation[INPUT_UNIT_COOLDOWN, y, x] = -1.0
-        team_observation[INPUT_UNIT_CAN_ACT, y, x] = -1.0
-
-
-
-
-      # Other units
-
-      unit_count = 0
-      cart_count = 0
-
-      total_resource_space = 0
-      total_resource_capacity = 0.0
-
-      total_fuel = 0
-
-      for unit in units_map[y][x]:
-        unit: Unit
-
-        if unit.team != team:
-          continue
-
-        if unit == considered_unit:
-          continue
-
-        unit_count = unit_count + 1
-
-        if unit.is_cart():
-          cart_count = cart_count + 1
-          
-        cargo_fuel = unit.cargo.wood
-        cargo_fuel += unit.cargo.coal * 10
-        cargo_fuel += unit.cargo.uranium * 40
-
-        total_fuel += cargo_fuel
-
-        total_resource_space += unit.get_cargo_space_left()
-        
-        if unit.is_worker():
-          total_resource_capacity += 100.0
-        else:
-          total_resource_capacity += 2000.0
-
-      total_fuel_capacity = 40.0 * total_resource_capacity
-      
-      team_observation[INPUT_OTHER_UNITS_COUNT, y, x] = unit_count
-      team_observation[INPUT_OTHER_UNITS_WORKER_CART_RATIO, y, x] = cart_count / max(1.0, unit_count) * 2.0 - 1.0
-
-      team_observation[INPUT_OTHER_UNITS_RESOURCE_SPACE, y, x] = total_resource_space / max(1.0, total_resource_capacity) * 2.0 - 1.0
-      team_observation[INPUT_OTHER_UNITS_FUEL_AMOUNT, y, x] = total_fuel / max(1.0, total_fuel_capacity) * 2.0 - 1.0
-
-
-      
-      
-      # Team
-
-      aux_team = -1
-      
-      if considered_unit is not None:
-        aux_team = int(considered_unit.team == team)
-      elif citytile is not None:
-        aux_team = int(citytile.team == team)
-
-      team_observation[INPUT_TEAM_EXISTS, y, x] = float(aux_team != -1) * 2.0 - 1.0
-
-      team_observation[INPUT_TEAM_IS_PLAYER, y, x] = float(aux_team == 1) * 2.0 - 1.0
-      team_observation[INPUT_TEAM_IS_OPPONENT, y, x] = float(aux_team == 0) * 2.0 - 1.0
-
-
-
-
-      # Player
-
-      team_observation[INPUT_PLAYER_RESEARCH_POINTS, y, x] = game.players[team].research_points / 200.0 * 2.0 - 1.0
-      team_observation[INPUT_PLAYER_RESEARCHED_COAL, y, x] = float(game.players[team].researched_coal()) * 2.0 - 1.0
-      team_observation[INPUT_PLAYER_RESEARCHED_URANIUM, y, x] = float(game.players[team].researched_uranium()) * 2.0 - 1.0
-      
-
-
-
-      # Game
-
-      team_observation[INPUT_GAME_CURRENT_TURN, y, x] = game.turn / 360.0 * 2.0 - 1.0
-
-
-
-      
-      turn_mod_40 = game.turn % 40
-
-      team_observation[INPUT_GAME_IS_NIGHT, y, x] = float(turn_mod_40 >= 30) * 2.0 - 1.0
-
-      if turn_mod_40 < 30:
-        team_observation[INPUT_GAME_NIGHT_PERCENT, y, x] = turn_mod_40 / 30.0 * 2.0 - 1.0
-      else:
-        team_observation[INPUT_GAME_NIGHT_PERCENT, y, x] = (1.0 - (turn_mod_40 - 30.0) / 10.0) * 2.0 - 1.0
-
-
-
-      team_observation[INPUT_GAME_CITY_TILE_RATIO, y, x] = game.players[team].city_tile_count / \
-        (game.players[0].city_tile_count + game.players[1].city_tile_count) * 2.0 - 1.0
-
-
-
-  return torch.Tensor(team_observation).unsqueeze(0)
-
-
-
-study_replay('27583628.json')
+      if team_env_action.action == Constants.ACTIONS.MOVE:
+        if team_env_action.direction == Constants.DIRECTIONS.CENTER:
+          team_cell_actions[CELL_ACTION_DO_NOTHING, unit.pos.y, unit.pos.x] = 1.0
+        elif team_env_action.direction == Constants.DIRECTIONS.NORTH:
+          team_cell_actions[CELL_ACTION_MOVE_NORTH, unit.pos.y, unit.pos.x] = 1.0
+        elif team_env_action.direction == Constants.DIRECTIONS.WEST:
+          team_cell_actions[CELL_ACTION_MOVE_WEST, unit.pos.y, unit.pos.x] = 1.0
+        elif team_env_action.direction == Constants.DIRECTIONS.SOUTH:
+          team_cell_actions[CELL_ACTION_MOVE_SOUTH, unit.pos.y, unit.pos.x] = 1.0
+        elif team_env_action.direction == Constants.DIRECTIONS.EAST:
+          team_cell_actions[CELL_ACTION_MOVE_EAST, unit.pos.y, unit.pos.x] = 1.0
+      elif team_env_action.action == Constants.ACTIONS.TRANSFER:
+          team_cell_actions[CELL_ACTION_SMART_TRANSFER, unit.pos.y, unit.pos.x] = 1.0
+      elif team_env_action.action == Constants.ACTIONS.BUILD_CITY:
+          team_cell_actions[CELL_ACTION_BUILD_CITY, unit.pos.y, unit.pos.x] = 1.0
+      elif team_env_action.action == Constants.ACTIONS.PILLAGE:
+          team_cell_actions[CELL_ACTION_PILLAGE, unit.pos.y, unit.pos.x] = 1.0
+
+
+
+  return team_cell_actions
+  
+
+
+for file_name in os.listdir('C:/Users/gusta/Desktop/Lux AI/Replays/Toad Brigade'):
+  study_replay('C:/Users/gusta/Desktop/Lux AI/Replays/Toad Brigade/' + file_name)
