@@ -22,6 +22,8 @@ def run_selfplay_match(map_size: int, model: LuxModel):
   }
 
   game = Game(configs)
+
+  game.a
   
   mcts = MCTS(model)
 
