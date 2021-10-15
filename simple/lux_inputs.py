@@ -310,7 +310,7 @@ def get_team_observation(game: Game, team: int, considered_units_map: List[List[
       for city in game.cities.values():
         city_tile_count[city.team] += len(city.city_cells)
 
-      team_observation[INPUT_GAME_CITY_TILE_RATIO, y, x] = city_tile_count[team] / sum(city_tile_count) * 2.0 - 1.0
+      team_observation[INPUT_GAME_CITY_TILE_RATIO, y, x] = city_tile_count[team] / max(1.0, sum(city_tile_count)) * 2.0 - 1.0
 
 
 

@@ -28,6 +28,19 @@ def study_replay(file_path):
 
   game = Game({'seed': replay['configuration']['seed']})
 
+
+
+
+  # Check if already processed
+
+  replay_id = os.path.splitext(os.path.basename(file_path))[0]
+  
+  if os.path.isfile(f'samples/{game.map.width}/{replay_id}.pickle'):
+    return
+
+
+
+
   team_histories = ([], [])
 
   #for step_obj in replay['steps'][1:]:
@@ -89,8 +102,6 @@ def study_replay(file_path):
 
 
   # Save samples
-
-  replay_id = os.path.splitext(os.path.basename(file_path))[0]
 
   if not os.path.isdir(f'samples/{game.map.width}'):
     makedirs(f'samples/{game.map.width}')
