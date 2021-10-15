@@ -20,6 +20,13 @@ from lux_cell_actions import *
 
 
 def study_replay(file_path):
+  replay_id = os.path.splitext(os.path.basename(file_path))[0]
+
+  print('Replay:', replay_id)
+  
+
+
+
   with open(file_path) as f:
     replay = json.load(f)
 
@@ -32,8 +39,6 @@ def study_replay(file_path):
 
 
   # Check if already processed
-
-  replay_id = os.path.splitext(os.path.basename(file_path))[0]
   
   if os.path.isfile(f'samples/{game.map.width}/{replay_id}.pickle'):
     return
@@ -77,11 +82,12 @@ def study_replay(file_path):
 
 
 
-  # if (game.state['turn'] == 359 and len(replay['steps']) == 361) \
-  # or game.state['turn'] == len(replay['steps']) - 1:
-  #   print('Success!')
-  # else:
-  #   print('Fail!')
+  if (game.state['turn'] == 359 and len(replay['steps']) == 361) \
+  or game.state['turn'] == len(replay['steps']) - 1:
+    print('Success!')
+  else:
+    print('Fail!')
+    return
 
 
 
