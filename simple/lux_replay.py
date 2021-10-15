@@ -29,4 +29,9 @@ def study_replay(file_path):
 
 
 
+def get_replay_team_observation(game, team):
+  
+
+
+
 study_replay('27583628.json')

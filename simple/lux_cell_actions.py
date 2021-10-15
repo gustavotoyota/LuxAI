@@ -23,49 +23,38 @@ from lux_units import *
 
 # Unit action list
 
-cell_action_list = []
+CELL_ACTION_COUNT = 0
+
+def add_cell_action():
+  global CELL_ACTION_COUNT
+  CELL_ACTION_COUNT += 1
+  return CELL_ACTION_COUNT - 1
 
 
 
 
-cell_action_list.append('BuildWorker')
-cell_action_list.append('BuildCart')
+CELL_ACTION_BUILD_WORKER = add_cell_action()
+CELL_ACTION_BUILD_CART = add_cell_action()
 
-cell_action_list.append('Research')
-
-
-
-
-cell_action_list.append('DoNothing')
-
-cell_action_list.append('MoveNorth')
-cell_action_list.append('MoveWest')
-cell_action_list.append('MoveSouth')
-cell_action_list.append('MoveEast')
-
-cell_action_list.append('SmartTransfer')
+CELL_ACTION_RESEARCH = add_cell_action()
 
 
 
 
-cell_action_list.append('BuildCity')
-cell_action_list.append('Pillage')
+CELL_ACTION_DO_NOTHING = add_cell_action()
+
+CELL_ACTION_MOVE_NORTH = add_cell_action()
+CELL_ACTION_MOVE_WEST = add_cell_action()
+CELL_ACTION_MOVE_SOUTH = add_cell_action()
+CELL_ACTION_MOVE_EAST = add_cell_action()
+
+CELL_ACTION_SMART_TRANSFER = add_cell_action()
 
 
 
 
-# Unit action map
-
-cell_action_map = {}
-for i in range(len(cell_action_list)):
-  cell_action_map[cell_action_list[i]] = i
-
-
-
-
-# Cell action count
-
-CELL_ACTION_COUNT = len(cell_action_list)
+CELL_ACTION_BUILD_CITY = add_cell_action()
+CELL_ACTION_PILLAGE = add_cell_action()
 
 
 
@@ -100,11 +89,11 @@ considered_units_map: List[List[Unit]]) -> List[Tuple]:
 
 
 
-      team_valid_cell_actions.append((cell_action_map['BuildWorker'], city_tile.pos.y, city_tile.pos.x))
-      team_valid_cell_actions.append((cell_action_map['BuildCart'], city_tile.pos.y, city_tile.pos.x))
+      team_valid_cell_actions.append((CELL_ACTION_BUILD_WORKER, city_tile.pos.y, city_tile.pos.x))
+      team_valid_cell_actions.append((CELL_ACTION_BUILD_CART, city_tile.pos.y, city_tile.pos.x))
 
       if game.state["teamStates"][team]["researchPoints"] < 200:
-        team_valid_cell_actions.append((cell_action_map['Research'], city_tile.pos.y, city_tile.pos.x))
+        team_valid_cell_actions.append((CELL_ACTION_RESEARCH, city_tile.pos.y, city_tile.pos.x))
 
 
 
@@ -127,16 +116,16 @@ considered_units_map: List[List[Unit]]) -> List[Tuple]:
 
 
 
-    team_valid_cell_actions.append((cell_action_map['DoNothing'], unit.pos.y, unit.pos.x))
+    team_valid_cell_actions.append((CELL_ACTION_DO_NOTHING, unit.pos.y, unit.pos.x))
     
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.NORTH):
-      team_valid_cell_actions.append((cell_action_map['MoveNorth'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((CELL_ACTION_MOVE_NORTH, unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.WEST):
-      team_valid_cell_actions.append((cell_action_map['MoveWest'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((CELL_ACTION_MOVE_WEST, unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.SOUTH):
-      team_valid_cell_actions.append((cell_action_map['MoveSouth'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((CELL_ACTION_MOVE_SOUTH, unit.pos.y, unit.pos.x))
     if is_move_action_valid(game, team, unit.pos, DIRECTIONS.EAST):
-      team_valid_cell_actions.append((cell_action_map['MoveEast'], unit.pos.y, unit.pos.x))
+      team_valid_cell_actions.append((CELL_ACTION_MOVE_EAST, unit.pos.y, unit.pos.x))
 
 
 
@@ -152,7 +141,7 @@ considered_units_map: List[List[Unit]]) -> List[Tuple]:
         adjacent_unit: Unit
 
         if adjacent_unit.team == team and adjacent_unit.get_cargo_space_left() > 0:
-          team_valid_cell_actions.append((cell_action_map['SmartTransfer'], unit.pos.y, unit.pos.x))
+          team_valid_cell_actions.append((CELL_ACTION_SMART_TRANSFER, unit.pos.y, unit.pos.x))
           break
         
 
@@ -160,10 +149,10 @@ considered_units_map: List[List[Unit]]) -> List[Tuple]:
 
     if unit.type == UNIT_TYPES.WORKER:
       if not unit_cell.is_city_tile():
-        team_valid_cell_actions.append((cell_action_map['BuildCity'], unit.pos.y, unit.pos.x))
+        team_valid_cell_actions.append((CELL_ACTION_BUILD_CITY, unit.pos.y, unit.pos.x))
 
         if unit_cell.get_road() >= 0.5:
-          team_valid_cell_actions.append((cell_action_map['Pillage'], unit.pos.y, unit.pos.x))
+          team_valid_cell_actions.append((CELL_ACTION_PILLAGE, unit.pos.y, unit.pos.x))
 
 
 
@@ -241,11 +230,11 @@ team: int, considered_units_map: List[List[Unit]]) -> Action:
 
   game_action: Action = None
 
-  if cell_action[0] == cell_action_map['BuildWorker']:
+  if cell_action[0] == CELL_ACTION_BUILD_WORKER:
     game_action = SpawnWorkerAction(team, 0, cell_action[2], cell_action[1])
-  elif cell_action[0] == cell_action_map['BuildCart']:
+  elif cell_action[0] == CELL_ACTION_BUILD_CART:
     game_action = SpawnCartAction(team, 0, cell_action[2], cell_action[1])
-  elif cell_action[0] == cell_action_map['Research']:
+  elif cell_action[0] == CELL_ACTION_RESEARCH:
     game_action = ResearchAction(team, cell_action[2], cell_action[1], 0)
 
   
@@ -254,26 +243,26 @@ team: int, considered_units_map: List[List[Unit]]) -> Action:
   # Unit actions
 
   if considered_unit:
-    if cell_action[0] == cell_action_map['DoNothing']:
+    if cell_action[0] == CELL_ACTION_DO_NOTHING:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.CENTER)
 
-    elif cell_action[0] == cell_action_map['MoveNorth']:
+    elif cell_action[0] == CELL_ACTION_MOVE_NORTH:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.NORTH)
-    elif cell_action[0] == cell_action_map['MoveWest']:
+    elif cell_action[0] == CELL_ACTION_MOVE_WEST:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.WEST)
-    elif cell_action[0] == cell_action_map['MoveSouth']:
+    elif cell_action[0] == CELL_ACTION_MOVE_SOUTH:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.SOUTH)
-    elif cell_action[0] == cell_action_map['MoveEast']:
+    elif cell_action[0] == CELL_ACTION_MOVE_EAST:
       game_action = MoveAction(team, considered_unit.id, DIRECTIONS.EAST)
 
-    elif cell_action[0] == cell_action_map['SmartTransfer']:
+    elif cell_action[0] == CELL_ACTION_SMART_TRANSFER:
       game_action = smart_transfer(game, team, considered_unit)
 
 
 
-    elif cell_action[0] == cell_action_map['BuildCity']: 
+    elif cell_action[0] == CELL_ACTION_BUILD_CITY: 
       game_action = SpawnCityAction(team, considered_unit.id)
-    elif cell_action[0] == cell_action_map['Pillage']:
+    elif cell_action[0] == CELL_ACTION_PILLAGE:
       game_action = PillageAction(team, considered_unit.id)
 
 

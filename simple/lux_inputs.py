@@ -16,100 +16,89 @@ from lux_units import *
 
 
 
-# Input list
+# Inputs
 
-input_list = []
+INPUT_COUNT = 0
 
-
-
-INPUT_TILE_ROAD_LEVEL = len(input_list); input_list.append('TileRoadLevel')
-
-
-
-INPUT_RESOURCE_EXISTS = len(input_list); input_list.append('ResourceExists')
-
-INPUT_RESOURCE_IS_WOOD = len(input_list); input_list.append('ResourceIsWood')
-INPUT_RESOURCE_IS_COAL = len(input_list); input_list.append('ResourceIsCoal')
-INPUT_RESOURCE_IS_URANIUM = len(input_list); input_list.append('ResourceIsUranium')
-
-INPUT_RESOURCE_AMOUNT = len(input_list); input_list.append('ResourceAmount')
+def add_input():
+  global INPUT_COUNT
+  INPUT_COUNT += 1
+  return INPUT_COUNT - 1
 
 
 
+INPUT_TILE_ROAD_LEVEL = add_input()
 
-INPUT_TEAM_EXISTS = len(input_list); input_list.append('TeamExists')
 
-INPUT_TEAM_IS_PLAYER = len(input_list); input_list.append('TeamIsPlayer')
-INPUT_TEAM_IS_OPPONENT = len(input_list); input_list.append('TeamIsOpponent')
+
+INPUT_RESOURCE_EXISTS = add_input()
+
+INPUT_RESOURCE_IS_WOOD = add_input()
+INPUT_RESOURCE_IS_COAL = add_input()
+INPUT_RESOURCE_IS_URANIUM = add_input()
+
+INPUT_RESOURCE_AMOUNT = add_input()
 
 
 
 
-INPUT_CITY_TILE_EXISTS = len(input_list); input_list.append('CityTileExists')
+INPUT_TEAM_EXISTS = add_input()
 
-INPUT_CITY_TILE_COOLDOWN = len(input_list); input_list.append('CityTileCooldown')
-INPUT_CITY_TILE_CAN_ACT = len(input_list); input_list.append('CityTileCanAct')
-
-
-
-
-INPUT_CITY_FUEL_AMOUNT = len(input_list); input_list.append('CityFuelAmount')
-INPUT_CITY_FUEL_UPKEEP = len(input_list); input_list.append('CityFuelUpkeep')
+INPUT_TEAM_IS_PLAYER = add_input()
+INPUT_TEAM_IS_OPPONENT = add_input()
 
 
 
 
-INPUT_UNIT_IS_WORKER = len(input_list); input_list.append('UnitIsWorker')
-INPUT_UNIT_IS_CART = len(input_list); input_list.append('UnitIsCart')
+INPUT_CITY_TILE_EXISTS = add_input()
 
-INPUT_UNIT_RESOURCE_SPACE = len(input_list); input_list.append('UnitResourceSpace')
-INPUT_UNIT_FUEL_AMOUNT = len(input_list); input_list.append('UnitFuelAmount')
-
-INPUT_UNIT_COOLDOWN = len(input_list); input_list.append('UnitCooldown')
-INPUT_UNIT_CAN_ACT = len(input_list); input_list.append('UnitCanAct')
+INPUT_CITY_TILE_COOLDOWN = add_input()
+INPUT_CITY_TILE_CAN_ACT = add_input()
 
 
 
 
-INPUT_OTHER_UNITS_COUNT = len(input_list); input_list.append('OtherUnitsCount')
-INPUT_OTHER_UNITS_WORKER_CART_RATIO = len(input_list); input_list.append('OtherUnitsWorkerCartRatio')
-
-INPUT_OTHER_UNITS_RESOURCE_SPACE = len(input_list); input_list.append('OtherUnitsResourceSpace')
-INPUT_OTHER_UNITS_FUEL_AMOUNT = len(input_list); input_list.append('OtherUnitsFuelAmount')
+INPUT_CITY_FUEL_AMOUNT = add_input()
+INPUT_CITY_FUEL_UPKEEP = add_input()
 
 
 
 
-INPUT_PLAYER_RESEARCH_POINTS = len(input_list); input_list.append('PlayerResearchPoints')
+INPUT_UNIT_IS_WORKER = add_input()
+INPUT_UNIT_IS_CART = add_input()
 
-INPUT_PLAYER_RESEARCHED_COAL = len(input_list); input_list.append('PlayerResearchedCoal')
-INPUT_PLAYER_RESEARCHED_URANIUM = len(input_list); input_list.append('PlayerResearchedUranium')
+INPUT_UNIT_RESOURCE_SPACE = add_input()
+INPUT_UNIT_FUEL_AMOUNT = add_input()
 
-
-
-
-INPUT_GAME_CURRENT_TURN = len(input_list); input_list.append('GameCurrentTurn')
-
-INPUT_GAME_IS_NIGHT = len(input_list); input_list.append('GameIsNight')
-INPUT_GAME_NIGHT_PERCENT = len(input_list); input_list.append('GameNightPercent')
-
-INPUT_GAME_CITY_TILE_RATIO = len(input_list); input_list.append('GameCityTileRatio')
+INPUT_UNIT_COOLDOWN = add_input()
+INPUT_UNIT_CAN_ACT = add_input()
 
 
 
 
-# Input map
+INPUT_OTHER_UNITS_COUNT = add_input()
+INPUT_OTHER_UNITS_WORKER_CART_RATIO = add_input()
 
-input_map = {}
-for i in range(len(input_list)):
-  input_map[input_list[i]] = i
-
-
+INPUT_OTHER_UNITS_RESOURCE_SPACE = add_input()
+INPUT_OTHER_UNITS_FUEL_AMOUNT = add_input()
 
 
-# Input count
 
-INPUT_COUNT = len(input_list)
+
+INPUT_PLAYER_RESEARCH_POINTS = add_input()
+
+INPUT_PLAYER_RESEARCHED_COAL = add_input()
+INPUT_PLAYER_RESEARCHED_URANIUM = add_input()
+
+
+
+
+INPUT_GAME_CURRENT_TURN = add_input()
+
+INPUT_GAME_IS_NIGHT = add_input()
+INPUT_GAME_NIGHT_PERCENT = add_input()
+
+INPUT_GAME_CITY_TILE_RATIO = add_input()
 
 
 
