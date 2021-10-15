@@ -140,9 +140,14 @@ considered_units_map: List[List[Unit]]) -> List[Tuple]:
       for adjacent_unit in adjacent_cell.units.values():
         adjacent_unit: Unit
 
-        if adjacent_unit.team == team and adjacent_unit.get_cargo_space_left() > 0:
-          team_valid_cell_actions.append((CELL_ACTION_SMART_TRANSFER, unit.pos.y, unit.pos.x))
-          break
+        if adjacent_unit.team != team:
+          continue
+
+        if adjacent_unit.get_cargo_space_left() == 0:
+          continue
+
+        team_valid_cell_actions.append((CELL_ACTION_SMART_TRANSFER, unit.pos.y, unit.pos.x))
+        break
         
 
     

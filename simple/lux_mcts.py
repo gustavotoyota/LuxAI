@@ -129,7 +129,7 @@ class MCTSNode():
       team_cell_action_mask = get_cell_action_mask(self.mcts.current_game, team_valid_cell_actions)
       team_cell_action_probs = normalize_cell_action_probs(team_cell_action_probs, team_cell_action_mask)
 
-      team_actions = get_team_actions(self.mcts.current_game, team, team_cell_action_probs, team_valid_cell_actions)
+      team_actions = get_team_actions(team_cell_action_probs, team_valid_cell_actions)
       team_action_probs = get_team_action_probs(team_actions, team_cell_action_probs)
 
       team_actions_list.append(team_actions)

@@ -11,7 +11,7 @@ from sortedcontainers.sortedlist import SortedList
 
 
 
-def get_team_actions(game: Game, team: int, cell_action_probs, valid_cell_actions):
+def get_team_actions(cell_action_probs, valid_cell_actions):
   # Make dictionary of cell action lists
 
   cell_actions: Dict[Tuple[int, int], List[Tuple[float, int]]] = {}
@@ -167,16 +167,3 @@ def get_team_action_probs(team_actions: List[List[tuple]], cell_action_probs):
 
 
   return team_action_probs / np.sum(team_action_probs)
-
-
-
-
-def get_team_action_policy(game: Game, team_action: List[tuple]):
-  team_action_policy = np.zeros((CELL_ACTION_COUNT, game.configs['width'], game.configs['height']))
-
-
-  for cell_action in team_action:
-    team_action_policy[cell_action] = 1.0
-
-
-  return team_action_policy
