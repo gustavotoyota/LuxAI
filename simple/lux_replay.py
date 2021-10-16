@@ -43,9 +43,9 @@ def analyze_replay(file_path):
 
 
 
-  replay_game: lux.game.Game = lux.game.Game()
-  replay_game._initialize(replay_obj['steps'][0][0]['observation']['updates'])
-  replay_game._update(replay_obj['steps'][0][0]['observation']['updates'])
+  # replay_game: lux.game.Game = lux.game.Game()
+  # replay_game._initialize(replay_obj['steps'][0][0]['observation']['updates'])
+  # replay_game._update(replay_obj['steps'][0][0]['observation']['updates'])
 
 
 
@@ -59,7 +59,8 @@ def analyze_replay(file_path):
       # Update replay game
       
       step_obj = replay_obj['steps'][env_game.state['turn'] + 1]
-      replay_game._update(step_obj[0]['observation']['updates'])
+
+      # replay_game._update(step_obj[0]['observation']['updates'])
 
 
 
@@ -87,7 +88,8 @@ def analyze_replay(file_path):
           team_env_actions.append(env_action)
           env_actions.append(env_action)
 
-        team_cell_actions = get_replay_team_cell_actions(env_game, team_env_actions, considered_units_map)
+        team_cell_actions = get_replay_team_cell_actions(
+          env_game, team, team_env_actions, considered_units_map)
 
         team_histories[team].append((team_observation, team_cell_actions))
 
@@ -103,9 +105,9 @@ def analyze_replay(file_path):
 
       # Validate game state
 
-      if not replay_validate_game_state(env_game, replay_game):
-        error = True
-        break
+      # if not replay_validate_game_state(env_game, replay_game):
+      #   error = True
+      #   break
 
       
 
@@ -217,19 +219,58 @@ def replay_validate_game_state(env_game: Game, replay_game: lux.game.Game):
 
 
 
-def get_replay_team_cell_actions(game: Game, team_env_actions: List[Action],
-considered_units_map: List[List[Unit]]):
-  team_cell_actions = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width))
+def get_replay_team_cell_actions(game: Game, team: int,
+team_env_actions: List[Action], considered_units_map: List[List[Unit]]):
+  city_tile_actions_map = {}
+
+  for city in game.cities.values():
+    city: City
+
+    if city.team != team:
+      continue
+
+    for city_cell in city.city_cells:
+      city_cell: Cell
+      city_tile: CityTile = city_cell.city_tile
+
+      if not city_tile.can_act():
+        continue
+
+      city_tile_actions_map[(city_tile.pos.y, city_tile.pos.x)] = CELL_ACTION_CITY_TILE_DO_NOTHING
+
+
+
+
+  unit_actions_map = {}
+
+  for unit in game.get_teams_units(team).values():
+    unit: Unit
+
+    if not unit.can_act():
+      continue
+
+    if unit != considered_units_map[unit.pos.y][unit.pos.x]:
+      continue
+
+    unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
+
 
 
 
   for team_env_action in team_env_actions:
-    if team_env_action.action == Constants.ACTIONS.BUILD_WORKER:
-      team_cell_actions[CELL_ACTION_BUILD_WORKER, team_env_action.y, team_env_action.x] = 1.0
-    elif team_env_action.action == Constants.ACTIONS.BUILD_CART:
-      team_cell_actions[CELL_ACTION_BUILD_CART, team_env_action.y, team_env_action.x] = 1.0
-    elif team_env_action.action == Constants.ACTIONS.RESEARCH:
-      team_cell_actions[CELL_ACTION_RESEARCH, team_env_action.y, team_env_action.x] = 1.0
+    is_city_tile = team_env_action.action == Constants.ACTIONS.BUILD_WORKER \
+      or team_env_action.action == Constants.ACTIONS.BUILD_CART \
+      or team_env_action.action == Constants.ACTIONS.RESEARCH
+
+    if is_city_tile:
+      if team_env_action.action == Constants.ACTIONS.BUILD_WORKER:
+        city_tile_actions_map[(team_env_action.y, team_env_action.x)] = CELL_ACTION_CITY_TILE_BUILD_WORKER
+      elif team_env_action.action == Constants.ACTIONS.BUILD_CART:
+        city_tile_actions_map[(team_env_action.y, team_env_action.x)] = CELL_ACTION_CITY_TILE_BUILD_CART
+      elif team_env_action.action == Constants.ACTIONS.RESEARCH:
+        city_tile_actions_map[(team_env_action.y, team_env_action.x)] = CELL_ACTION_CITY_TILE_RESEARCH
+      else:
+        raise Exception('Unknown city tile action.')
     else:
       if team_env_action.action == Constants.ACTIONS.TRANSFER:
         unit: Unit = game.get_unit(team_env_action.team, team_env_action.source_id)
@@ -241,23 +282,36 @@ considered_units_map: List[List[Unit]]):
 
       if team_env_action.action == Constants.ACTIONS.MOVE:
         if team_env_action.direction == Constants.DIRECTIONS.CENTER:
-          team_cell_actions[CELL_ACTION_DO_NOTHING, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
         elif team_env_action.direction == Constants.DIRECTIONS.NORTH:
-          team_cell_actions[CELL_ACTION_MOVE_NORTH, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_NORTH
         elif team_env_action.direction == Constants.DIRECTIONS.WEST:
-          team_cell_actions[CELL_ACTION_MOVE_WEST, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_WEST
         elif team_env_action.direction == Constants.DIRECTIONS.SOUTH:
-          team_cell_actions[CELL_ACTION_MOVE_SOUTH, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_SOUTH
         elif team_env_action.direction == Constants.DIRECTIONS.EAST:
-          team_cell_actions[CELL_ACTION_MOVE_EAST, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_EAST
+        else:
+          raise Exception('Unknown unit action.')
       elif team_env_action.action == Constants.ACTIONS.TRANSFER:
-          team_cell_actions[CELL_ACTION_SMART_TRANSFER, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_SMART_TRANSFER
       elif team_env_action.action == Constants.ACTIONS.BUILD_CITY:
-          team_cell_actions[CELL_ACTION_BUILD_CITY, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_BUILD_CITY
       elif team_env_action.action == Constants.ACTIONS.PILLAGE:
-          team_cell_actions[CELL_ACTION_PILLAGE, unit.pos.y, unit.pos.x] = 1.0
+          city_tile_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_PILLAGE
+      else:
+        raise Exception('Unknown unit action.')
 
 
+
+
+  team_cell_actions = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width))
+
+  for city_tile_pos, city_tile_action in city_tile_actions_map.items():
+    team_cell_actions[(city_tile_action, ) + city_tile_pos] = 1.0
+
+  for unit_pos, unit_action in city_tile_actions_map.items():
+    team_cell_actions[(unit_action, ) + unit_pos] = 1.0
 
   return team_cell_actions
   
