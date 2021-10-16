@@ -69,12 +69,12 @@ class LuxModel(nn.Module):
 
 
 
-    self.value_num_channels = 2
-    self.value_num_neurons = 64
+    self.value_num_channels = 1
+    self.value_num_neurons = 32
 
 
 
-    self.policy_num_channels = 4
+    self.policy_num_channels = 32
 
 
 
@@ -110,10 +110,10 @@ class LuxModel(nn.Module):
 
     # Policy head
 
-    self.policy_conv = nn.Conv2d(self.residual_num_channels, self.policy_num_channels, 1)
-    self.policy_bn = nn.BatchNorm2d(self.policy_num_channels)
+    self.policy_conv1 = nn.Conv2d(self.residual_num_channels, self.policy_num_channels, 1)
+    self.policy_bn1 = nn.BatchNorm2d(self.policy_num_channels)
 
-    self.policy_fc = nn.Linear(self.num_pixels * self.policy_num_channels, self.num_pixels * CELL_ACTION_COUNT)
+    self.policy_conv2 = nn.Conv2d(self.policy_num_channels, CELL_ACTION_COUNT, 1)
     
 
   
@@ -154,17 +154,14 @@ class LuxModel(nn.Module):
 
     # Policy head
 
-    cell_action_log_probs = self.policy_conv(out)
-    cell_action_log_probs = self.policy_bn(cell_action_log_probs)
-    cell_action_log_probs = F.relu(cell_action_log_probs)
+    cell_action_probs = self.policy_conv1(out)
+    cell_action_probs = self.policy_bn1(cell_action_probs)
+    cell_action_probs = F.relu(cell_action_probs)
 
-    cell_action_log_probs = cell_action_log_probs.view(-1, self.num_pixels * self.policy_num_channels)
-    cell_action_log_probs = self.policy_fc(cell_action_log_probs)
-    cell_action_log_probs = F.log_softmax(cell_action_log_probs, -1)
-
-    cell_action_log_probs = cell_action_log_probs.view(-1, CELL_ACTION_COUNT, self.height, self.width)
+    cell_action_probs = self.policy_conv2(cell_action_probs)
+    cell_action_probs = F.sigmoid(cell_action_probs)
 
 
 
 
-    return cell_action_log_probs, value
+    return cell_action_probs, value
