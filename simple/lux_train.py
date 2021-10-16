@@ -49,9 +49,6 @@ def fit_minibatch(model: LuxModel, optimizer: Optimizer, minibatch: tuple):
   standardized_input = standardized_input
 
   action_probs, values = model(standardized_input)
-
-  # action_log_probs = action_log_probs.view(minibatch[0].shape[0], -1)
-  # target_action_log_probs = minibatch[1].view(minibatch[0].shape[0], -1)
   
   policy_loss = F.binary_cross_entropy(action_probs, minibatch[1])
   value_loss = F.mse_loss(values, minibatch[2].unsqueeze(1))
@@ -138,13 +135,12 @@ samples = organize_samples(samples)
 
 mean_std = load_pickle('lux_mean_std.pickle')
 
-observation_mean = np.expand_dims(np.expand_dims(mean_std[0], 1), 1)
-observation_mean = np.broadcast_to(observation_mean, (INPUT_COUNT, map_size, map_size))
-observation_mean = torch.Tensor(observation_mean)
-
-observation_std = np.expand_dims(np.expand_dims(mean_std[1], 1), 1)
-observation_std = np.broadcast_to(observation_std, (INPUT_COUNT, map_size, map_size))
-observation_std = torch.Tensor(observation_std)
+observation_mean = torch.Tensor(mean_std[0]) \
+  .reshape((CELL_ACTION_COUNT, 1, 1)) \
+  .broadcast_to((CELL_ACTION_COUNT, map_size, map_size))
+observation_std = torch.Tensor(mean_std[1]) \
+  .reshape((CELL_ACTION_COUNT, 1, 1)) \
+  .broadcast_to((CELL_ACTION_COUNT, map_size, map_size))
 
 
 
@@ -157,6 +153,9 @@ else:
   model = LuxModel(map_size, map_size)
 
 optimizer = Adam(model.parameters())
+
+
+
 
 
 while True:

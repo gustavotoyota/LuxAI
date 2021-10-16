@@ -28,18 +28,8 @@ def fix_samples(dir_path):
 
     samples = load_pickle(file_path)
 
-    for i in range(len(samples)):
-      sample = samples[i]
-
-      action_probs = np.array(sample[1])
-      action_probs[action_probs > 0.0] = 1.0
-
-      sample = (sample[0], action_probs, sample[2])
-
-      samples[i] = sample
-
-    save_pickle(samples, file_path)
+    save_gzip_pickle(samples, file_path + '.gz')
 
 
 
-fix_samples('samples/24')
+fix_samples('samples/12')

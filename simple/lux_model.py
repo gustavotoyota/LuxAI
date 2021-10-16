@@ -159,7 +159,7 @@ class LuxModel(nn.Module):
     cell_action_probs = F.relu(cell_action_probs)
 
     cell_action_probs = self.policy_conv2(cell_action_probs)
-    cell_action_probs = F.sigmoid(cell_action_probs)
+    cell_action_probs = torch.sigmoid(cell_action_probs)
 
 
 
