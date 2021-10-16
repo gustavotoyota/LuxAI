@@ -48,5 +48,7 @@ mean_16, std_16 = get_mean_std('samples/16')
 observation_mean = (mean_12 + mean_16) / 2.0
 observation_std = (mean_12 + mean_16) / 2.0
 
+observation_std[observation_std == 0.0] = 1.0
+
 with open('lux_mean_std.pickle', 'wb') as file:
   pickle.dump((observation_mean, observation_std), file)
