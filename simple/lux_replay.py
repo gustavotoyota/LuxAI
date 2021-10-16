@@ -158,7 +158,7 @@ def analyze_replay(file_path):
 
   # Save samples
 
-  dir_path = f'samples/Toad Brigade/{env_game.map.width}'
+  dir_path = f'samples/{env_game.map.width}'
 
   os.makedirs(dir_path, exist_ok=True)
 
@@ -264,7 +264,7 @@ considered_units_map: List[List[Unit]]):
 
 
 
-dir_path = 'C:/Users/gusta/Desktop/Lux AI/Replays/Toad Brigade'
+dir_path = 'C:/Users/gusta/Desktop/Lux AI/Replays/Replays'
 
 for file_name in os.listdir(dir_path):
   file_path = f'{dir_path}/{file_name}'
