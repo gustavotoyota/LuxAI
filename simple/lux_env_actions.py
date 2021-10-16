@@ -6,6 +6,8 @@ from luxai2021.game.position import Position
 from luxai2021.game.unit import Unit
 
 
+
+
 def is_env_action_valid(env_action: Action, game: Game, env_actions: List[Action]):
   if not env_action:
     return False
@@ -33,13 +35,7 @@ def is_env_action_valid(env_action: Action, game: Game, env_actions: List[Action
     target_pos = src_unit.pos.translate(env_action.direction, 1)
     target_cell = game.map.get_cell_by_pos(target_pos)
 
-    if target_cell.city_tile and target_cell.city_tile.team != env_action.team:
-      return False
-
-    for dest_unit in target_cell.units.values():
-      if dest_unit.team == env_action.team:
-        break
-
+    if target_cell.city_tile and target_cell.city_tile.team != src_unit.team:
       return False
 
   return True

@@ -1,6 +1,5 @@
 import json
 import os
-from os import makedirs
 import time
 import pickle
 
@@ -12,6 +11,10 @@ from luxai2021.game.constants import Constants
 
 
 
+import lux.game
+
+
+
 from lux_inputs import *
 from lux_env_actions import *
 from lux_cell_actions import *
@@ -19,7 +22,7 @@ from lux_cell_actions import *
 
 
 
-def study_replay(file_path):
+def analyze_replay(file_path):
   replay_id = os.path.splitext(os.path.basename(file_path))[0]
 
   print('Replay:', replay_id)
@@ -27,76 +30,119 @@ def study_replay(file_path):
 
 
 
+  # Load replay object
+
   with open(file_path) as f:
-    replay = json.load(f)
+    replay_obj = json.load(f)
 
 
 
 
-  game = Game({'seed': replay['configuration']['seed']})
+  env_game = Game({'seed': replay_obj['configuration']['seed']})
 
 
 
 
-  # Check if already processed
-  
-  if os.path.isfile(f'samples/{game.map.width}/{replay_id}.pickle'):
-    return
+  replay_game: lux.game.Game = lux.game.Game()
+  replay_game._initialize(replay_obj['steps'][0][0]['observation']['updates'])
+  replay_game._update(replay_obj['steps'][0][0]['observation']['updates'])
 
 
 
 
   team_histories = ([], [])
 
-  #for step_obj in replay['steps'][1:]:
-  while not game.match_over():
-    step_obj = replay['steps'][game.state['turn'] + 1]
+  error = None
 
-    env_actions = []
-    
-    considered_units_map = get_considered_units_map(game)
-
-    for team in range(2):
-      team_observation = get_team_observation(game, team, considered_units_map).numpy().squeeze()
-
-      team_env_actions = []
+  try:
+    for step_obj in replay_obj['steps'][1:]:
+      # Update replay game
       
-      for action in step_obj[team]['action']:
-        env_action = game.action_from_string(action, team)
-
-        if not is_env_action_valid(env_action, game, env_actions):
-          continue
-
-        team_env_actions.append(env_action)
-        env_actions.append(env_action)
-
-      team_cell_actions = get_replay_team_cell_actions(game, team, team_env_actions, considered_units_map)
-
-      team_histories[team].append((team_observation, team_cell_actions))
-
-    game.run_turn_with_actions(env_actions)
-
-    print('Turn:', game.state['turn'])
-    # print(game.map.get_map_string())
+      step_obj = replay_obj['steps'][env_game.state['turn'] + 1]
+      replay_game._update(step_obj[0]['observation']['updates'])
 
 
 
 
-  if (game.state['turn'] == 359 and len(replay['steps']) == 361) \
-  or game.state['turn'] == len(replay['steps']) - 1:
-    print('Success!')
-  else:
+      # Get actions
+
+      env_actions = []
+      
+      considered_units_map = get_considered_units_map(env_game)
+
+      for team in range(2):
+        team_observation = get_team_observation(env_game, team, considered_units_map).numpy().squeeze()
+
+        team_env_actions = []
+        
+        for action in step_obj[team]['action']:
+          env_action = env_game.action_from_string(action, team)
+
+          if not is_env_action_valid(env_action, env_game, env_actions):
+            continue
+
+          team_env_actions.append(env_action)
+          env_actions.append(env_action)
+
+        team_cell_actions = get_replay_team_cell_actions(env_game, team_env_actions, considered_units_map)
+
+        team_histories[team].append((team_observation, team_cell_actions))
+
+
+
+
+      # Execute actions
+
+      env_game.run_turn_with_actions(env_actions)
+
+
+
+
+      # Validate game state
+
+      if not replay_validate_game_state(env_game, replay_game):
+        error = True
+        break
+
+      
+
+
+      print('Turn:', env_game.state['turn'])
+      # print(game.map.get_map_string())
+  except Exception as exception:
+    error = exception
+    print(exception)
+
+
+
+
+  # Validate and move replay
+
+  dir_path = os.path.dirname(file_path)
+
+  if error or not env_game.match_over() or \
+  (env_game.state['turn'] != len(replay_obj['steps']) - 1 and \
+  not (env_game.state['turn'] == 359 and len(replay_obj['steps']) == 361)):
+    os.makedirs(f'{dir_path}/failures', exist_ok=True)
+    os.replace(file_path, f'{dir_path}/failures/{file_name}')
+
     print('Fail!')
+
     return
+  
+  os.makedirs(f'{dir_path}/successes', exist_ok=True)
+  os.replace(file_path, f'{dir_path}/successes/{file_name}')
+
+  print('Success!')
 
 
 
 
-  # Create samples
+  # Organize samples
 
   samples = []
 
-  winning_team = game.get_winning_team()
+  winning_team = env_game.get_winning_team()
 
   for team in range(2):
     target_value = float(winning_team == team) * 2.0 - 1.0
@@ -109,17 +155,67 @@ def study_replay(file_path):
 
   # Save samples
 
-  if not os.path.isdir(f'samples/{game.map.width}'):
-    makedirs(f'samples/{game.map.width}')
+  dir_path = f'samples/Toad Brigade/{env_game.map.width}'
 
-  with open(f'samples/{game.map.width}/{replay_id}.pickle', 'wb') as f:
+  os.makedirs(dir_path, exist_ok=True)
+
+  with open(f'{dir_path}/{replay_id}.pickle', 'wb') as f:
     pickle.dump(samples, f)
 
 
 
 
-def get_replay_team_cell_actions(game: Game, team: int,
-team_env_actions: List[Action], considered_units_map: List[List[Unit]]):
+
+def replay_validate_game_state(env_game: Game, replay_game: lux.game.Game):
+  replay_units_map = np.zeros((env_game.map.height, env_game.map.width), np.int32)
+
+  for team in range(2):
+    for unit in replay_game.players[team].units:
+      replay_units_map[unit.pos.y][unit.pos.x] += 1
+
+
+
+
+  for y in range(env_game.map.height):
+    for x in range(env_game.map.width):
+      env_cell = env_game.map.get_cell(x, y)
+      replay_cell = replay_game.map.get_cell(x, y)
+
+
+
+
+      # Test resource
+
+      if bool(env_cell.resource and env_cell.resource.amount > 0) != bool(replay_cell.resource):
+        return False
+
+
+
+
+      # Test city tile
+
+      if bool(env_cell.city_tile) != bool(replay_cell.citytile):
+        return False
+
+
+
+
+      # Test units
+
+      if len(env_cell.units) != replay_units_map[y][x]:
+        return False
+
+
+
+
+  return True
+
+
+
+
+
+def get_replay_team_cell_actions(game: Game, team_env_actions: List[Action],
+considered_units_map: List[List[Unit]]):
   team_cell_actions = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width))
 
 
@@ -133,9 +229,9 @@ team_env_actions: List[Action], considered_units_map: List[List[Unit]]):
       team_cell_actions[CELL_ACTION_RESEARCH, team_env_action.y, team_env_action.x] = 1.0
     else:
       if team_env_action.action == Constants.ACTIONS.TRANSFER:
-        unit: Unit = game.get_unit(team, team_env_action.source_id)
+        unit: Unit = game.get_unit(team_env_action.team, team_env_action.source_id)
       else:
-        unit: Unit = game.get_unit(team, team_env_action.unit_id)
+        unit: Unit = game.get_unit(team_env_action.team, team_env_action.unit_id)
 
       if unit != considered_units_map[unit.pos.y][unit.pos.x]:
         continue
@@ -164,5 +260,11 @@ team_env_actions: List[Action], considered_units_map: List[List[Unit]]):
   
 
 
-for file_name in os.listdir('C:/Users/gusta/Desktop/Lux AI/Replays/Toad Brigade'):
-  study_replay('C:/Users/gusta/Desktop/Lux AI/Replays/Toad Brigade/' + file_name)
+
+dir_path = 'C:/Users/gusta/Desktop/Lux AI/Replays/Toad Brigade'
+
+for file_name in os.listdir(dir_path):
+  file_path = f'{dir_path}/{file_name}'
+
+  if os.path.isfile(file_path):
+    analyze_replay(file_path)
