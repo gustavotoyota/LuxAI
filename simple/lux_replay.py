@@ -74,6 +74,9 @@ def analyze_replay(file_path):
         team_observation = get_team_observation(env_game, team, considered_units_map).numpy().squeeze()
 
         team_env_actions = []
+
+        if not step_obj[team]['action']:
+          continue
         
         for action in step_obj[team]['action']:
           env_action = env_game.action_from_string(action, team)
