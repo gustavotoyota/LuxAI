@@ -8,6 +8,6 @@ def load_pickle(file_path):
 
 
 
-def save_pickle(file_path):
+def save_pickle(obj, file_path):
   with open(file_path, 'wb') as file:
-    return pickle.dump(file)
+    return pickle.dump(obj, file)
