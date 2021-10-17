@@ -118,7 +118,7 @@ class LuxModel(nn.Module):
 
   
 
-  def forward(self, x):
+  def forward(self, x, skip_sigmoid=False):
     # Input layers
 
     out = self.in_conv(x)
@@ -159,7 +159,8 @@ class LuxModel(nn.Module):
     cell_action_probs = F.relu(cell_action_probs)
 
     cell_action_probs = self.policy_conv2(cell_action_probs)
-    cell_action_probs = torch.sigmoid(cell_action_probs)
+    if not skip_sigmoid:
+      cell_action_probs = torch.sigmoid(cell_action_probs)
 
 
 

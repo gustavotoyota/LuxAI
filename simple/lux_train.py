@@ -48,9 +48,9 @@ def fit_minibatch(model: LuxModel, optimizer: Optimizer, minibatch: tuple):
   standardized_input = (minibatch[0] - observation_mean) / observation_std
   standardized_input = standardized_input
 
-  action_probs, values = model(standardized_input)
+  action_probs, values = model(standardized_input, True)
   
-  policy_loss = F.binary_cross_entropy(action_probs, minibatch[1])
+  policy_loss = F.binary_cross_entropy_with_logits(action_probs, minibatch[1])
   value_loss = F.mse_loss(values, minibatch[2].unsqueeze(1))
 
   loss = policy_loss + value_loss
