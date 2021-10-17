@@ -1,7 +1,3 @@
-from sortedcontainers.sortedlist import SortedList
-
-
-
 from luxai2021.game.game import Game
 
 
@@ -28,7 +24,7 @@ class MCTS():
   def __init__(self, model: LuxModel):
     self.model: LuxModel = model
 
-    self.num_iterations = 1
+    self.num_iterations = 100
     self.c_puct = 1.0
     
     self.game: Game = None
@@ -83,18 +79,26 @@ class MCTSNode():
 
     self.team_actions: Tuple[List, List] = team_actions
     
+    self.prior_prob = prior_prob
     self.num_visits = 0
+
     self.cumul_value = 0.0
 
-    self.aux_value = prior_prob
-
-    self.children = SortedList(key=lambda item: -item.aux_value)
+    self.children: List[MCTSNode] = []
 
 
 
 
   def select_child(self):
-    return self.children[0]
+    return max(self.children, key=lambda child: child.get_value())
+
+  def get_value(self):
+    mean_value = self.cumul_value / max(1.0, self.num_visits)
+
+    adjusted_prior_prob = (self.mcts.c_puct * self.prior_prob *
+      math.sqrt(self.parent.num_visits) / (1.0 + self.num_visits))
+
+    return mean_value + adjusted_prior_prob
 
 
 
@@ -140,8 +144,6 @@ class MCTSNode():
 
     # Create children
 
-    child_list = []
-
     for i in range(len(team_actions_list[0])):
       for j in range(len(team_actions_list[1])):
         child_actions = (team_actions_list[0][i], team_actions_list[1][j])
@@ -149,9 +151,7 @@ class MCTSNode():
 
         child = MCTSNode(self.mcts, self, child_actions, child_prob)
 
-        child_list.append(child)
-
-    self.children.update(child_list)
+        self.children.append(child)
 
 
 
@@ -162,16 +162,11 @@ class MCTSNode():
 
   def backup(self, leaf_value):
     self.num_visits += 1
+
     self.cumul_value += leaf_value
 
-    if self.is_root():
-      return
-
-    self.parent.children.remove(self)
-    self.aux_value -= 0.25 ** leaf_value
-    self.parent.children.add(self)
-
-    self.parent.backup(leaf_value)
+    if not self.is_root():
+      self.parent.backup(leaf_value)
 
 
 
