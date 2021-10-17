@@ -22,8 +22,6 @@ def run_selfplay_match(map_size: int, model: LuxModel):
   }
 
   game = Game(configs)
-
-  game.a
   
   mcts = MCTS(model)
 
@@ -44,6 +42,12 @@ def run_selfplay_match(map_size: int, model: LuxModel):
 
 if torch.cuda.is_available():
   torch.set_default_tensor_type(torch.cuda.FloatTensor)
+
+
+
+map_size = 12
+
+model = torch.load('models/8 residual layers/model_12.pt')
   
 while True:
-  run_selfplay_match(12, LuxModel(12, 12))
+  run_selfplay_match(map_size, model)

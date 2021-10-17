@@ -40,7 +40,11 @@ def fit_minibatch(model: LuxModel, optimizer: optim.Optimizer, minibatch: tuple)
   value_loss = F.mse_loss(values, torch.Tensor(minibatch[2]))
 
   loss = policy_loss + value_loss
-  print(loss)
+
+  global avg_loss
+  avg_loss = avg_loss * 0.9 + loss.item() * 0.1
+
+  print(avg_loss)
 
   optimizer.zero_grad()
   loss.backward()
@@ -86,7 +90,7 @@ def create_minibatches(samples: tuple, minibatch_size=256):
 
 
 
-map_size = 16
+map_size = 12
 
 
 
@@ -134,16 +138,22 @@ observation_std = torch.Tensor(mean_std[1]) \
 
 
 
+model_dir_path = 'models'
+model_stem_path = f'{model_dir_path}/model_{map_size}'
+model_file_path = f'{model_stem_path}.pt'
 
-
-if os.path.isfile(f'models/model_{map_size}.pt'):
-  model = torch.load(f'models/model_{map_size}.pt')
+if os.path.isfile(model_file_path):
+  model = torch.load(model_file_path)
 else:
   model = LuxModel(map_size, map_size)
 
-optimizer = optim.Adam(model.parameters(), lr=1e-4)
+optimizer = optim.Adam(model.parameters(), lr=3e-4, weight_decay=1e-5)
 #optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
+
+
+
+avg_loss = 0.0
 
 
 
@@ -151,4 +161,4 @@ optimizer = optim.Adam(model.parameters(), lr=1e-4)
 while True:
   fit_minibatches(model, samples)
 
-  torch.save(model, 'model.pt')
+  torch.save(model, f'{model_stem_path}_{round(avg_loss, 5)}.pt')

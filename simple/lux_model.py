@@ -65,7 +65,7 @@ class LuxModel(nn.Module):
 
 
     self.residual_num_channels = 128
-    self.residual_num_blocks = 12
+    self.residual_num_blocks = 8
 
 
 
