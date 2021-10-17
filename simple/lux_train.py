@@ -1,9 +1,7 @@
-import math
 from typing import List
 from numpy.random.mtrand import sample
 
 import os
-import pickle
 
 
 
@@ -11,24 +9,13 @@ import pickle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.optim.adam import Adam
-from torch.optim.optimizer import Optimizer
+import torch.optim as optim
 
 
 
 
 from lux_model import *
 from lux_utils import *
-
-
-
-
-def organize_samples(samples: List[tuple]):
-  inputs = np.array([sample[0] for sample in samples])
-  policy_targets = np.array([sample[1] for sample in samples])
-  value_targets = np.array([sample[2] for sample in samples])
-
-  return inputs, policy_targets, value_targets
   
 
 
@@ -44,14 +31,13 @@ def fit_minibatches(model: LuxModel, samples: tuple):
 
 
 
-def fit_minibatch(model: LuxModel, optimizer: Optimizer, minibatch: tuple):
-  standardized_input = (minibatch[0] - observation_mean) / observation_std
-  standardized_input = standardized_input
+def fit_minibatch(model: LuxModel, optimizer: optim.Optimizer, minibatch: tuple):
+  standardized_input = (torch.Tensor(minibatch[0]) - observation_mean) / observation_std
 
-  action_probs, values = model(standardized_input, True)
+  action_probs, values = model(standardized_input, False)
   
-  policy_loss = F.binary_cross_entropy_with_logits(action_probs, minibatch[1])
-  value_loss = F.mse_loss(values, minibatch[2].unsqueeze(1))
+  policy_loss = F.binary_cross_entropy_with_logits(action_probs, torch.Tensor(minibatch[1]))
+  value_loss = F.mse_loss(values, torch.Tensor(minibatch[2]))
 
   loss = policy_loss + value_loss
   print(loss)
@@ -69,9 +55,9 @@ def create_minibatches(samples: tuple, minibatch_size=256):
 
   permutation = list(np.random.permutation(num_samples))
 
-  inputs = torch.Tensor(samples[0][permutation])
-  policy_targets = torch.Tensor(samples[1][permutation])
-  value_targets = torch.Tensor(samples[2][permutation])
+  inputs = samples[0][permutation]
+  policy_targets = samples[1][permutation]
+  value_targets = samples[2][permutation]
 
   minibatches = []
 
@@ -100,7 +86,7 @@ def create_minibatches(samples: tuple, minibatch_size=256):
 
 
 
-map_size = 12
+map_size = 16
 
 
 
@@ -115,7 +101,7 @@ if torch.cuda.is_available():
 
 # Get samples
 
-samples = []
+samples = [[], [], []]
 
 dir_path = f'samples/{map_size}'
 
@@ -124,16 +110,19 @@ for file_name in os.listdir(dir_path):
 
   if not os.path.isfile(file_path):
     continue
+  
+  samples_aux = load_lz4_pickle(file_path)
+  for i in range(3):
+    samples[i].append(samples_aux[i])
 
-  samples += load_gzip_pickle(file_path)
-
-samples = organize_samples(samples)
-
+for i in range(3):
+  samples[i] = np.concatenate(samples[i])
 
 
 
 
-mean_std = load_gzip_pickle('lux_mean_std.pickle.gz')
+
+mean_std = load_pickle('lux_mean_std.pickle')
 
 observation_mean = torch.Tensor(mean_std[0]) \
   .reshape((INPUT_COUNT, 1, 1)) \
@@ -147,12 +136,13 @@ observation_std = torch.Tensor(mean_std[1]) \
 
 
 
-if os.path.isfile('model.pt'):
-  model = torch.load('model.pt')
+if os.path.isfile(f'models/model_{map_size}.pt'):
+  model = torch.load(f'models/model_{map_size}.pt')
 else:
   model = LuxModel(map_size, map_size)
 
-optimizer = Adam(model.parameters(), lr=1e-4)
+optimizer = optim.Adam(model.parameters(), lr=1e-4)
+#optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
 
 
 
