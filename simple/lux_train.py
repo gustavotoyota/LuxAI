@@ -125,7 +125,7 @@ for file_name in os.listdir(dir_path):
   if not os.path.isfile(file_path):
     continue
 
-  samples += load_pickle(file_path)
+  samples += load_gzip_pickle(file_path)
 
 samples = organize_samples(samples)
 
@@ -133,14 +133,14 @@ samples = organize_samples(samples)
 
 
 
-mean_std = load_pickle('lux_mean_std.pickle')
+mean_std = load_gzip_pickle('lux_mean_std.pickle.gz')
 
 observation_mean = torch.Tensor(mean_std[0]) \
-  .reshape((CELL_ACTION_COUNT, 1, 1)) \
-  .broadcast_to((CELL_ACTION_COUNT, map_size, map_size))
+  .reshape((INPUT_COUNT, 1, 1)) \
+  .broadcast_to((INPUT_COUNT, map_size, map_size))
 observation_std = torch.Tensor(mean_std[1]) \
-  .reshape((CELL_ACTION_COUNT, 1, 1)) \
-  .broadcast_to((CELL_ACTION_COUNT, map_size, map_size))
+  .reshape((INPUT_COUNT, 1, 1)) \
+  .broadcast_to((INPUT_COUNT, map_size, map_size))
 
 
 
@@ -152,7 +152,7 @@ if os.path.isfile('model.pt'):
 else:
   model = LuxModel(map_size, map_size)
 
-optimizer = Adam(model.parameters())
+optimizer = Adam(model.parameters(), lr=1e-4)
 
 
 

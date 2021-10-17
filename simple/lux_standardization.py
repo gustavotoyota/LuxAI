@@ -9,6 +9,8 @@ import pickle
 
 import os
 
+from lux_utils import load_gzip_pickle, save_gzip_pickle
+
 
 
 
@@ -21,8 +23,7 @@ def get_mean_std(dir_path):
   for file_name in os.listdir(dir_path):
     file_path = f'{dir_path}/{file_name}'
 
-    with open(file_path, 'rb') as file:
-      samples += pickle.load(file)
+    samples += load_gzip_pickle(file_path)
 
 
 
@@ -50,5 +51,4 @@ observation_std = (mean_12 + mean_16) / 2.0
 
 observation_std[observation_std == 0.0] = 1.0
 
-with open('lux_mean_std.pickle', 'wb') as file:
-  pickle.dump((observation_mean, observation_std), file)
+save_gzip_pickle((observation_mean, observation_std), 'lux_mean_std.pickle.gz')

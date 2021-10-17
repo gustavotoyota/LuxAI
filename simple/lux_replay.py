@@ -18,6 +18,7 @@ import lux.game
 from lux_inputs import *
 from lux_env_actions import *
 from lux_cell_actions import *
+from lux_utils import *
 
 
 
@@ -164,8 +165,7 @@ def analyze_replay(file_path):
 
   os.makedirs(dir_path, exist_ok=True)
 
-  with open(f'{dir_path}/{replay_id}.pickle', 'wb') as f:
-    pickle.dump(samples, f)
+  save_gzip_pickle(samples, f'{dir_path}/{replay_id}.pickle')
 
 
 
