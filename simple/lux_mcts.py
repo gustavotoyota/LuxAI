@@ -25,25 +25,31 @@ class MCTS():
     self.model: LuxModel = model
 
     self.num_iterations = 100
-    self.c_puct = 1.0
-    
-    self.game: Game = None
-    self.current_game: Game = None
+    self.c_puct = 5.0
+
+    self.root = None
 
 
 
 
   def run(self, game: Game) -> List[tuple]:
-    self.game: Game = game
+    if not self.root:
+      self.root: MCTSNode = MCTSNode(self)
+      self.root.game = game
 
-    self.root: MCTSNode = MCTSNode(self)
-    self.root_cumul_value = 0.0
-    self.root_num_visits = 0
+      self.root_cumul_value = 0.0
+      self.root_num_visits = 0
 
-    for _ in range(self.num_iterations):
+    while self.root_num_visits < self.num_iterations:
       self.playout()
 
-    best_child = self.root.children[np.argmax(self.root.children_num_visits)]
+    best_child_index = np.argmax(self.root.children_num_visits)
+    best_child = self.root.children[best_child_index]
+
+    self.root_cumul_value = self.root.children_cumul_values[best_child_index]
+    self.root_num_visits = self.root.children_num_visits[best_child_index]
+
+    self.root = best_child
 
     return best_child.team_actions
 
@@ -53,22 +59,30 @@ class MCTS():
   def playout(self):
     node: MCTSNode = self.root
 
-    self.game.log_file = None
-    self.current_game: Game = copy.deepcopy(self.game)
-    self.current_game.stop_replay_logging()
+    current_game = self.root.game
 
     while not node.is_leaf():
       node = node.select_child()
-
-      considered_units_map = get_considered_units_map(self.current_game)
-      env_actions = get_env_actions(self.current_game, node.team_actions, considered_units_map)
       
-      self.current_game.run_turn_with_actions(env_actions)
+      if node.game:
+        current_game = node.game
+        continue
 
-    if not self.current_game.match_over():
+      current_game.log_file = None
+      node.game = copy.deepcopy(current_game)
+      node.game.stop_replay_logging()
+
+      considered_units_map = get_considered_units_map(node.game)
+      env_actions = get_env_actions(node.game, node.team_actions, considered_units_map)
+    
+      node.game.run_turn_with_actions(env_actions)
+
+      current_game = node.game
+
+    if not current_game.match_over():
       leaf_value = node.expand()
     else:
-      leaf_value = float(self.current_game.get_winning_team() == 0)
+      leaf_value = float(current_game.get_winning_team() == 0)
 
     node.backup(leaf_value)
   
@@ -83,6 +97,8 @@ class MCTSNode():
 
     self.parent: MCTSNode = parent
     self.index = index
+
+    self.game: Game = None
 
     self.children: List[MCTSNode] = None
 
@@ -106,7 +122,7 @@ class MCTSNode():
     adjusted_prior_probs = self.mcts.c_puct * self.children_prior_probs * \
       math.sqrt(parent_num_visits) / (1.0 + self.children_num_visits)
 
-    aux_value = mean_values + adjusted_prior_probs
+    aux_value = adjusted_prior_probs
 
     return self.children[np.argmax(aux_value)]
 
@@ -124,25 +140,22 @@ class MCTSNode():
 
     # Get team actions and probabilities
     
-    considered_units_map = get_considered_units_map(self.mcts.current_game)
+    considered_units_map = get_considered_units_map(self.game)
 
     for team in range(2):
-      team_observation = get_team_observation(self.mcts.current_game, team, considered_units_map)
-
+      team_observation = get_team_observation(self.game, team, considered_units_map)
       team_observation = (team_observation - self.mcts.model.input_mean) / self.mcts.model.input_std
 
       team_cell_action_probs, team_value = self.mcts.model(team_observation)
-
-      team_cell_action_probs: Tensor
-      team_value: Tensor
+      team_cell_action_probs: Tensor; team_value: Tensor
 
       team_cell_action_probs = team_cell_action_probs.detach().view(CELL_ACTION_COUNT, \
-        self.mcts.current_game.map.width, self.mcts.current_game.map.height).cpu().numpy()
+        self.game.map.width, self.game.map.height).cpu().numpy()
       team_values[team] = team_value.item()
 
-      team_valid_cell_actions = get_team_valid_cell_actions(self.mcts.current_game, team, considered_units_map)
+      team_valid_cell_actions = get_team_valid_cell_actions(self.game, team, considered_units_map)
 
-      team_cell_action_mask = get_cell_action_mask(self.mcts.current_game, team_valid_cell_actions)
+      team_cell_action_mask = get_cell_action_mask(self.game, team_valid_cell_actions)
       team_cell_action_probs = normalize_cell_action_probs(team_cell_action_probs, team_cell_action_mask)
 
       team_actions = get_team_actions(team_cell_action_probs, team_valid_cell_actions)
