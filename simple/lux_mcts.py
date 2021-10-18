@@ -37,6 +37,7 @@ class MCTS():
     self.game: Game = game
 
     self.root: MCTSNode = MCTSNode(self)
+    self.root_cumul_value = 0.0
     self.root_num_visits = 0
 
     for _ in range(self.num_iterations):
@@ -54,11 +55,15 @@ class MCTS():
 
     self.game.log_file = None
     self.current_game: Game = copy.deepcopy(self.game)
+    self.current_game.stop_replay_logging()
 
     while not node.is_leaf():
       node = node.select_child()
+
+      considered_units_map = get_considered_units_map(self.current_game)
+      env_actions = get_env_actions(self.current_game, node.team_actions, considered_units_map)
       
-      self.current_game.run_turn_with_actions(node.team_actions[0] + node.team_actions[1])
+      self.current_game.run_turn_with_actions(env_actions)
 
     if not self.current_game.match_over():
       leaf_value = node.expand()
@@ -124,6 +129,8 @@ class MCTSNode():
     for team in range(2):
       team_observation = get_team_observation(self.mcts.current_game, team, considered_units_map)
 
+      team_observation = (team_observation - self.mcts.model.input_mean) / self.mcts.model.input_std
+
       team_cell_action_probs, team_value = self.mcts.model(team_observation)
 
       team_cell_action_probs: Tensor
@@ -182,6 +189,7 @@ class MCTSNode():
   def backup(self, leaf_value):
     if self.is_root():
       self.mcts.root_num_visits += 1
+      self.mcts.root_cumul_value += leaf_value
       return
 
     self.parent.children_cumul_values[self.index] += leaf_value

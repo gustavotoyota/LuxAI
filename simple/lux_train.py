@@ -1,6 +1,3 @@
-from typing import List
-from numpy.random.mtrand import sample
-
 import os
 
 
@@ -127,7 +124,7 @@ for i in range(3):
 
 # Load input mean and standard deviation
 
-mean_std = load_pickle('lux_mean_std.pickle')
+mean_std = load_lz4_pickle('lux_mean_std.pickle.lz4')
 
 observation_mean = torch.Tensor(mean_std[0]) \
   .reshape((INPUT_COUNT, 1, 1)) \
@@ -158,7 +155,7 @@ else:
 # optimizer = optim.Adam(model.parameters(), lr=3e-4, weight_decay=1e-5)
 # optimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-5)
 # optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
-optimizer = AdaBelief(model.parameters())
+optimizer = AdaBelief(model.parameters(), weight_decay=1e-4, print_change_log=False)
 
 
 

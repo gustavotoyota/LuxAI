@@ -1,11 +1,4 @@
-
-
-
-
-
 import numpy as np
-
-import pickle
 
 import os
 
@@ -15,40 +8,34 @@ from lux_utils import *
 
 
 
+weights = []
+means = []
+stds = []
 
-
-def get_mean_std(dir_path):
-  samples = []
-
+def add_samples(dir_path):
   for file_name in os.listdir(dir_path):
     file_path = f'{dir_path}/{file_name}'
 
-    samples += load_lz4_pickle(file_path)
+    samples = load_lz4_pickle(file_path)
 
+    weights.append(np.array([samples[0].shape[0]], np.float32))
+    means.append(samples[0].mean((0, 2, 3)))
+    stds.append(samples[0].std((0, 2, 3)))
 
+  print(f'Finished {dir_path}')
 
-  observations = []
-  for sample in samples:
-    observations.append(sample[0])
+add_samples('samples/12')
+add_samples('samples/16')
+add_samples('samples/24')
+add_samples('samples/32')
 
+weights = np.array(weights, np.float32)
+means = np.array(means, np.float32)
+stds = np.array(stds, np.float32)
 
-  observations = np.array(observations, np.float32)
+avg_mean = (means * weights).mean(axis=0) / weights.mean()
+avg_std = (stds * weights).mean(axis=0) / weights.mean()
 
-  observation_mean = observations.mean((0, 2, 3))
-  observation_std = observations.std((0, 2, 3))
+avg_std[avg_std == 0.0] = 1.0
 
-  return observation_mean, observation_std
-
-
-
-mean_12, std_12 = get_mean_std('samples/12')
-mean_16, std_16 = get_mean_std('samples/16')
-#mean_24, std_24 = get_mean_std('samples/24')
-#mean_32, std_32 = get_mean_std('samples/32')
-
-observation_mean = (mean_12 + mean_16) / 2.0
-observation_std = (mean_12 + mean_16) / 2.0
-
-observation_std[observation_std == 0.0] = 1.0
-
-save_pickle((observation_mean, observation_std), 'lux_mean_std.pickle')
+save_lz4_pickle((avg_mean, avg_std), 'lux_mean_std.pickle.lz4')
