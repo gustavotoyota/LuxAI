@@ -6,9 +6,6 @@ from luxai2021.game.game import Game
 
 import torch
 
-import time
-import pickle
-
 
 
 from lux_actions import *

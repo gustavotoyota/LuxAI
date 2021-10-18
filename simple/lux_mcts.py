@@ -24,8 +24,8 @@ class MCTS():
   def __init__(self, model: LuxModel):
     self.model: LuxModel = model
 
-    self.num_iterations = 100
-    self.c_puct = 5.0
+    self.num_iterations = 500
+    self.c_puct = 10.0
 
     self.root = None
 
@@ -43,11 +43,14 @@ class MCTS():
     while self.root_num_visits < self.num_iterations:
       self.playout()
 
-    best_child_index = np.argmax(self.root.children_num_visits)
-    best_child = self.root.children[best_child_index]
+    child_indices = [None, None]
+    for team in range(2):
+      child_indices[team] = np.argmax(self.root.children_num_visits.sum(1 - team))
 
-    self.root_cumul_value = self.root.children_cumul_values[best_child_index]
-    self.root_num_visits = self.root.children_num_visits[best_child_index]
+    best_child = self.root.children[child_indices[0]][child_indices[1]]
+    
+    self.root_cumul_value = self.root.children_cumul_values[child_indices[0]][child_indices[1]]
+    self.root_num_visits = self.root.children_num_visits[child_indices[0]][child_indices[1]]
 
     self.root = best_child
 
@@ -112,28 +115,33 @@ class MCTSNode():
 
 
   def select_child(self):
-    mean_values = self.children_cumul_values / np.maximum(1.0, self.children_num_visits)
+    child_indices = [None, None]
 
-    if self.is_root():
-      parent_num_visits = self.mcts.root_num_visits
-    else:
-      parent_num_visits = self.parent.children_num_visits[self.index]
+    for team in range(2):
+      mean_values = self.children_cumul_values.sum(1 - team) / np.maximum(1.0, self.children_num_visits.sum(1 - team))
 
-    adjusted_prior_probs = self.mcts.c_puct * self.children_prior_probs * \
-      math.sqrt(parent_num_visits) / (1.0 + self.children_num_visits)
+      if self.is_root():
+        parent_num_visits = self.mcts.root_num_visits
+      else:
+        parent_num_visits = self.parent.children_num_visits[self.index[0]][self.index[1]]
 
-    aux_value = adjusted_prior_probs
+      adjusted_prior_probs = self.mcts.c_puct * self.children_prior_probs[team] * \
+        math.sqrt(parent_num_visits) / (1.0 + self.children_num_visits.sum(1 - team))
 
-    return self.children[np.argmax(aux_value)]
+      ucb_scores = (-team * 2.0 + 1.0) * mean_values + adjusted_prior_probs
+
+      child_indices[team] = np.argmax(ucb_scores)
+
+    return self.children[child_indices[0]][child_indices[1]]
 
 
 
 
   def expand(self):
-    team_values = [0.0, 0.0]
+    team_values = [None, None]
 
-    team_actions_list = []
-    team_actions_probs = []
+    team_actions_list = [None, None]
+    team_actions_probs = [None, None]
 
 
 
@@ -158,43 +166,34 @@ class MCTSNode():
       team_cell_action_mask = get_cell_action_mask(self.game, team_valid_cell_actions)
       team_cell_action_probs = normalize_cell_action_probs(team_cell_action_probs, team_cell_action_mask)
 
-      team_actions = get_team_actions(team_cell_action_probs, team_valid_cell_actions)
-      team_action_probs = get_team_action_probs(team_actions, team_cell_action_probs)
-
-      team_actions_list.append(team_actions)
-      team_actions_probs.append(team_action_probs)
+      team_actions_list[team] = get_team_actions(team_cell_action_probs, team_valid_cell_actions)
+      team_actions_probs[team] = get_team_action_probs(team_actions_list[team], team_cell_action_probs)
 
 
 
 
     # Children
 
-    num_children = len(team_actions_list[0]) * len(team_actions_list[1])
+    self.children = [
+      [None for _ in range(len(team_actions_list[1]))]
+        for _ in range(len(team_actions_list[0]))]
 
-    self.children = [None] * num_children
-
-    self.children_prior_probs = np.zeros(num_children, np.float32)
-    self.children_cumul_values = np.zeros(num_children, np.float32)
-    self.children_num_visits = np.zeros(num_children, np.float32)
-
-
-
-
-    child_index = 0
+    self.children_prior_probs = team_actions_probs
+    self.children_cumul_values = np.zeros(
+      (len(team_actions_list[0]), len(team_actions_list[1])), np.float32)
+    self.children_num_visits = np.zeros(
+      (len(team_actions_list[0]), len(team_actions_list[1])), np.float32)
 
     for i in range(len(team_actions_list[0])):
       for j in range(len(team_actions_list[1])):
-        child_actions = (team_actions_list[0][i], team_actions_list[1][j])
-
-        self.children[child_index] = MCTSNode(self.mcts, self, child_index, child_actions)
-        self.children_prior_probs[child_index] = team_actions_probs[0][i] * team_actions_probs[1][j]
-
-        child_index += 1
+        self.children[i][j] = MCTSNode(self.mcts, self, (i, j), 
+          (team_actions_list[0][i], team_actions_list[1][j]))
 
 
 
+    node_value = (team_values[0] - team_values[1]) / 2.0
 
-    return (team_values[0] - team_values[1]) / 2.0
+    return node_value
 
 
 
@@ -205,8 +204,8 @@ class MCTSNode():
       self.mcts.root_cumul_value += leaf_value
       return
 
-    self.parent.children_cumul_values[self.index] += leaf_value
-    self.parent.children_num_visits[self.index] += 1
+    self.parent.children_cumul_values[self.index[0]][self.index[1]] += leaf_value
+    self.parent.children_num_visits[self.index[0]][self.index[1]] += 1
 
     self.parent.backup(leaf_value)
 
