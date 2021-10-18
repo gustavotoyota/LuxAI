@@ -151,7 +151,7 @@ considered_units_map: List[List[Unit]]) -> Tuple[List[Action], List[Action]]:
 
 
 def get_team_action_probs(team_actions: List[List[tuple]], cell_action_probs):
-  team_action_probs = np.zeros(len(team_actions))
+  team_action_probs = np.zeros(len(team_actions), np.float32)
 
 
 

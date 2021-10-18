@@ -1,7 +1,5 @@
 import json
 import os
-import time
-import pickle
 
 
 
@@ -57,9 +55,12 @@ def analyze_replay(file_path):
 
   try:
     for step_obj in replay_obj['steps'][1:]:
-      # Update replay game
-      
       step_obj = replay_obj['steps'][env_game.state['turn'] + 1]
+
+
+
+
+      # Update replay game
 
       # replay_game._update(step_obj[0]['observation']['updates'])
 
@@ -77,17 +78,15 @@ def analyze_replay(file_path):
 
         team_env_actions = []
 
-        if not step_obj[team]['action']:
-          continue
-        
-        for action in step_obj[team]['action']:
-          env_action = env_game.action_from_string(action, team)
+        if step_obj[team]['action']:
+          for action in step_obj[team]['action']:
+            env_action = env_game.action_from_string(action, team)
 
-          if not is_env_action_valid(env_action, env_game, env_actions):
-            continue
+            if not is_env_action_valid(env_action, env_game, env_actions):
+              continue
 
-          team_env_actions.append(env_action)
-          env_actions.append(env_action)
+            team_env_actions.append(env_action)
+            env_actions.append(env_action)
 
         team_cell_actions = get_replay_team_cell_actions(
           env_game, team, team_env_actions, considered_units_map)
@@ -144,17 +143,30 @@ def analyze_replay(file_path):
 
 
 
-  # Organize samples
+  # Create samples
 
   samples = []
 
-  winning_team = env_game.get_winning_team()
-
   for team in range(2):
-    target_value = float(winning_team == team) * 2.0 - 1.0
+    target_value = np.array([float(env_game.get_winning_team() == team) * 2.0 - 1.0], np.float32)
 
-    for experience in team_histories[team]:
+    team_history = team_histories[team]
+    
+    samples.append((team_history[0][0], team_history[0][1], np.array([0.0], np.float32)))
+
+    for experience in team_history[1:]:
       samples.append((experience[0], experience[1], target_value))
+
+
+
+
+  # Organize samples
+
+  inputs = np.array([sample[0] for sample in samples], np.float32)
+  policy_targets = np.array([sample[1] for sample in samples], np.float32)
+  value_targets = np.array([sample[2] for sample in samples], np.float32)
+
+  samples = (inputs, policy_targets, value_targets)
 
 
 
@@ -165,7 +177,7 @@ def analyze_replay(file_path):
 
   os.makedirs(dir_path, exist_ok=True)
 
-  save_gzip_pickle(samples, f'{dir_path}/{replay_id}.pickle')
+  save_lz4_pickle(samples, f'{dir_path}/{replay_id}.pickle')
 
 
 
@@ -305,7 +317,7 @@ team_env_actions: List[Action], considered_units_map: List[List[Unit]]):
 
 
 
-  team_cell_actions = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width))
+  team_cell_actions = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width), np.float32)
 
   for city_tile_pos, city_tile_action in city_tile_actions_map.items():
     team_cell_actions[(city_tile_action, ) + city_tile_pos] = 1.0

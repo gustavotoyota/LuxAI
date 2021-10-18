@@ -11,6 +11,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from adabelief_pytorch import AdaBelief
+
 
 
 
@@ -89,16 +91,13 @@ def create_minibatches(samples: tuple, minibatch_size=256):
 
 
 
-
 map_size = 12
-
 
 
 
 
 if torch.cuda.is_available():
   torch.set_default_tensor_type(torch.cuda.FloatTensor)
-
 
 
 
@@ -126,6 +125,8 @@ for i in range(3):
 
 
 
+# Load input mean and standard deviation
+
 mean_std = load_pickle('lux_mean_std.pickle')
 
 observation_mean = torch.Tensor(mean_std[0]) \
@@ -138,6 +139,8 @@ observation_std = torch.Tensor(mean_std[1]) \
 
 
 
+# Get model
+
 model_dir_path = 'models'
 model_stem_path = f'{model_dir_path}/model_{map_size}'
 model_file_path = f'{model_stem_path}.pt'
@@ -147,16 +150,20 @@ if os.path.isfile(model_file_path):
 else:
   model = LuxModel(map_size, map_size)
 
-optimizer = optim.Adam(model.parameters(), lr=3e-4, weight_decay=1e-5)
-#optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+
+
+
+# Create optimizer
+
+# optimizer = optim.Adam(model.parameters(), lr=3e-4, weight_decay=1e-5)
+# optimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-5)
+# optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+optimizer = AdaBelief(model.parameters())
 
 
 
 
 avg_loss = 0.0
-
-
-
 
 while True:
   fit_minibatches(model, samples)

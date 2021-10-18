@@ -107,7 +107,7 @@ INPUT_GAME_CITY_TILE_RATIO = add_input()
 
 
 def get_team_observation(game: Game, team: int, considered_units_map: List[List[Unit]]):
-  team_observation = np.zeros((INPUT_COUNT, game.map.height, game.map.width))
+  team_observation = np.zeros((INPUT_COUNT, game.map.height, game.map.width), np.float32)
 
 
 

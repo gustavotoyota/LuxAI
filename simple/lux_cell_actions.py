@@ -202,7 +202,7 @@ def is_move_action_valid(game: Game, team: int, pos: Position, dir: DIRECTIONS) 
 
 
 def get_cell_action_mask(game: Game, valid_cell_actions):
-  cell_action_mask = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width))
+  cell_action_mask = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width), np.float32)
 
 
   for valid_cell_action in valid_cell_actions:

@@ -34,14 +34,15 @@ class MCTS():
 
 
   def run(self, game: Game) -> List[tuple]:
-    self.root: MCTSNode = MCTSNode(self)
-
     self.game: Game = game
+
+    self.root: MCTSNode = MCTSNode(self)
+    self.root_num_visits = 0
 
     for _ in range(self.num_iterations):
       self.playout()
 
-    best_child = max(self.root.children, key=lambda child: child.num_visits)
+    best_child = self.root.children[np.argmax(self.root.children_num_visits)]
 
     return best_child.team_actions
 
@@ -71,34 +72,38 @@ class MCTS():
 
 
 class MCTSNode():
-  def __init__(self, mcts: MCTS, parent = None,
-  team_actions: Tuple[List, List] = None, prior_prob: float = 0.0):
+  def __init__(self, mcts: MCTS, parent = None, index: int = 0,
+  team_actions: Tuple[List, List] = None):
     self.mcts = mcts
 
     self.parent: MCTSNode = parent
+    self.index = index
+
+    self.children: List[MCTSNode] = None
+
+    self.children_prior_probs = None
+    self.children_cumul_values = None
+    self.children_num_visits = None
 
     self.team_actions: Tuple[List, List] = team_actions
-    
-    self.prior_prob = prior_prob
-    self.num_visits = 0
-
-    self.cumul_value = 0.0
-
-    self.children: List[MCTSNode] = []
 
 
 
 
   def select_child(self):
-    return max(self.children, key=lambda child: child.get_value())
+    mean_values = self.children_cumul_values / np.maximum(1.0, self.children_num_visits)
 
-  def get_value(self):
-    mean_value = self.cumul_value / max(1.0, self.num_visits)
+    if self.is_root():
+      parent_num_visits = self.mcts.root_num_visits
+    else:
+      parent_num_visits = self.parent.children_num_visits[self.index]
 
-    adjusted_prior_prob = (self.mcts.c_puct * self.prior_prob *
-      math.sqrt(self.parent.num_visits) / (1.0 + self.num_visits))
+    adjusted_prior_probs = self.mcts.c_puct * self.children_prior_probs * \
+      math.sqrt(parent_num_visits) / (1.0 + self.children_num_visits)
 
-    return mean_value + adjusted_prior_prob
+    aux_value = mean_values + adjusted_prior_probs
+
+    return self.children[np.argmax(aux_value)]
 
 
 
@@ -142,16 +147,30 @@ class MCTSNode():
 
 
 
-    # Create children
+    # Children
+
+    num_children = len(team_actions_list[0]) * len(team_actions_list[1])
+
+    self.children = [None] * num_children
+
+    self.children_prior_probs = np.zeros(num_children, np.float32)
+    self.children_cumul_values = np.zeros(num_children, np.float32)
+    self.children_num_visits = np.zeros(num_children, np.float32)
+
+
+
+
+    child_index = 0
 
     for i in range(len(team_actions_list[0])):
       for j in range(len(team_actions_list[1])):
         child_actions = (team_actions_list[0][i], team_actions_list[1][j])
-        child_prob = team_actions_probs[0][i] * team_actions_probs[1][j]
 
-        child = MCTSNode(self.mcts, self, child_actions, child_prob)
+        self.children[child_index] = MCTSNode(self.mcts, self, child_index, child_actions)
+        self.children_prior_probs[child_index] = team_actions_probs[0][i] * team_actions_probs[1][j]
 
-        self.children.append(child)
+        child_index += 1
+
 
 
 
@@ -161,12 +180,14 @@ class MCTSNode():
 
 
   def backup(self, leaf_value):
-    self.num_visits += 1
+    if self.is_root():
+      self.mcts.root_num_visits += 1
+      return
 
-    self.cumul_value += leaf_value
+    self.parent.children_cumul_values[self.index] += leaf_value
+    self.parent.children_num_visits[self.index] += 1
 
-    if not self.is_root():
-      self.parent.backup(leaf_value)
+    self.parent.backup(leaf_value)
 
 
 

@@ -32,7 +32,7 @@ def get_mean_std(dir_path):
     observations.append(sample[0])
 
 
-  observations = np.array(observations)
+  observations = np.array(observations, np.float32)
 
   observation_mean = observations.mean((0, 2, 3))
   observation_std = observations.std((0, 2, 3))
