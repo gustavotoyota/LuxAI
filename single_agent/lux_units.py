@@ -1,11 +1,15 @@
 from typing import List
-from luxai2021.game.game import Game
-from luxai2021.game.unit import Unit
 
 
 
 
-def get_considered_units_map(game: Game) -> List[List[Unit]]:
+import luxai2021.game.game
+import luxai2021.game.unit
+
+
+
+
+def get_considered_units_map(game: luxai2021.game.game.Game) -> List[List[luxai2021.game.unit.Unit]]:
   considered_units_map = []
 
 

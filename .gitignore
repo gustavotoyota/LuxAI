@@ -140,3 +140,11 @@ dmypy.json
 .idea/
 
 simple/samples/
+
+single_agent/samples/12/
+
+single_agent/samples/16/
+
+single_agent/samples/24/
+
+single_agent/samples/32/

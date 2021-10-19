@@ -10,9 +10,9 @@ import torch
 
 
 
-import luxai2021.game.city as lux_engine_city
-import luxai2021.game.game as lux_engine_game
-import luxai2021.game.unit as lux_engine_unit
+import luxai2021.game.city
+import luxai2021.game.game
+import luxai2021.game.unit
 
 
 
@@ -108,7 +108,8 @@ INPUT_GAME_CITY_TILE_RATIO = add_input()
 
 
 
-def get_team_observation(game: lux_engine_game.Game, team: int, considered_units_map: List[List[lux_engine_unit.Unit]]):
+def get_team_observation(game: luxai2021.game.game.Game, team: int,
+considered_units_map: List[List[luxai2021.game.unit.Unit]]):
   team_observation = np.zeros((INPUT_COUNT, game.map.height, game.map.width), np.float32)
 
 
@@ -138,55 +139,39 @@ def get_team_observation(game: lux_engine_game.Game, team: int, considered_units
         team_observation[INPUT_RESOURCE_IS_URANIUM, y, x] = float(cell.resource.type == 'uranium')
         
         team_observation[INPUT_RESOURCE_AMOUNT, y, x] = cell.resource.amount
-      else:
-        team_observation[INPUT_RESOURCE_EXISTS, y, x] = 0.0
-        
-        team_observation[INPUT_RESOURCE_IS_WOOD, y, x] = 0.0
-        team_observation[INPUT_RESOURCE_IS_COAL, y, x] = 0.0
-        team_observation[INPUT_RESOURCE_IS_URANIUM, y, x] = 0.0
-        
-        team_observation[INPUT_RESOURCE_AMOUNT, y, x] = 0.0
 
 
       
       
       # City tile
 
-      city_tile: lux_engine_city.CityTile = cell.city_tile
+      city_tile: luxai2021.game.city.CityTile = cell.city_tile
 
       if city_tile:
         team_observation[INPUT_CITY_TILE_EXISTS, y, x] = 1.0
 
         team_observation[INPUT_CITY_TILE_COOLDOWN, y, x] = city_tile.cooldown
         team_observation[INPUT_CITY_TILE_CAN_ACT, y, x] = float(city_tile.can_act())
-      else:
-        team_observation[INPUT_CITY_TILE_EXISTS, y, x] = 0.0
-
-        team_observation[INPUT_CITY_TILE_COOLDOWN, y, x] = 0.0
-        team_observation[INPUT_CITY_TILE_CAN_ACT, y, x] = 0.0
 
 
 
       
       # City
 
-      city: lux_engine_city.City = None
+      city: luxai2021.game.city.City = None
 
       if city_tile:
         city = game.cities[city_tile.city_id]
 
         team_observation[INPUT_CITY_FUEL_AMOUNT, y, x] = city.fuel
         team_observation[INPUT_CITY_FUEL_UPKEEP, y, x] = city.get_light_upkeep()
-      else:
-        team_observation[INPUT_CITY_FUEL_AMOUNT, y, x] = 0.0
-        team_observation[INPUT_CITY_FUEL_UPKEEP, y, x] = 0.0
       
       
       
       
       # Unit
 
-      considered_unit: lux_engine_unit.Unit = considered_units_map[y][x]
+      considered_unit: luxai2021.game.unit.Unit = considered_units_map[y][x]
 
       if considered_unit:
         if considered_unit.is_worker():
@@ -208,17 +193,6 @@ def get_team_observation(game: lux_engine_game.Game, team: int, considered_units
 
         team_observation[INPUT_UNIT_COOLDOWN, y, x] = considered_unit.cooldown / unit_base_cooldown
         team_observation[INPUT_UNIT_CAN_ACT, y, x] = float(considered_unit.can_act())
-      else:
-        team_observation[INPUT_UNIT_EXISTS, y, x] = 0.0
-
-        team_observation[INPUT_UNIT_IS_WORKER, y, x] = 0.0
-        team_observation[INPUT_UNIT_IS_CART, y, x] = 0.0
-
-        team_observation[INPUT_UNIT_RESOURCE_SPACE, y, x] = 0.0
-        team_observation[INPUT_UNIT_FUEL_AMOUNT, y, x] = 0.0
-
-        team_observation[INPUT_UNIT_COOLDOWN, y, x] = 0.0
-        team_observation[INPUT_UNIT_CAN_ACT, y, x] = 0.0
 
 
 
@@ -234,7 +208,7 @@ def get_team_observation(game: lux_engine_game.Game, team: int, considered_units
       total_fuel = 0
 
       for unit in cell.units.values():
-        unit: lux_engine_unit.Unit
+        unit: luxai2021.game.unit.Unit
 
         if unit.team != team:
           continue

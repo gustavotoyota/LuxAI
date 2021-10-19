@@ -3,11 +3,11 @@ from typing import List, Tuple
 
 
 
-import luxai2021.game.cell as lux_engine_cell
-import luxai2021.game.city as lux_engine_city
-import luxai2021.game.game as lux_engine_game
-import luxai2021.game.position as lux_engine_position
-import luxai2021.game.unit as lux_engine_unit
+import luxai2021.game.cell
+import luxai2021.game.city
+import luxai2021.game.game
+import luxai2021.game.position
+import luxai2021.game.unit
 
 
 
@@ -56,8 +56,8 @@ CELL_ACTION_UNIT_PILLAGE = add_cell_action()
 
 
 
-def get_team_valid_cell_actions(game: lux_engine_game.Game, team: int,
-considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
+def get_team_valid_cell_actions(game: luxai2021.game.game.Game, team: int,
+considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
   team_valid_cell_actions = []
   
 
@@ -65,7 +65,7 @@ considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
   # Cities
 
   for city in game.cities.values():
-    city: lux_engine_city.City
+    city: luxai2021.game.city.City
 
 
 
@@ -75,8 +75,8 @@ considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
 
 
     for city_cell in city.city_cells:
-      city_cell: lux_engine_cell.Cell
-      city_tile: lux_engine_city.CityTile = city_cell.city_tile
+      city_cell: luxai2021.game.cell.Cell
+      city_tile: luxai2021.game.city.CityTile = city_cell.city_tile
 
 
 
@@ -100,7 +100,7 @@ considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
   # Units
 
   for unit in game.get_teams_units(team).values():
-    unit: lux_engine_unit.Unit
+    unit: luxai2021.game.unit.Unit
 
 
 
@@ -116,13 +116,13 @@ considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
 
     team_valid_cell_actions.append((CELL_ACTION_UNIT_DO_NOTHING, unit.pos.y, unit.pos.x))
     
-    if is_move_action_valid(game, team, unit.pos, lux_engine_game.DIRECTIONS.NORTH):
+    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.NORTH):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_NORTH, unit.pos.y, unit.pos.x))
-    if is_move_action_valid(game, team, unit.pos, lux_engine_game.DIRECTIONS.WEST):
+    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.WEST):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_WEST, unit.pos.y, unit.pos.x))
-    if is_move_action_valid(game, team, unit.pos, lux_engine_game.DIRECTIONS.SOUTH):
+    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.SOUTH):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_SOUTH, unit.pos.y, unit.pos.x))
-    if is_move_action_valid(game, team, unit.pos, lux_engine_game.DIRECTIONS.EAST):
+    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.EAST):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_EAST, unit.pos.y, unit.pos.x))
 
 
@@ -133,10 +133,10 @@ considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
     unit_cell = game.map.get_cell(unit.pos.x, unit.pos.y)
 
     for adjacent_cell in game.map.get_adjacent_cells(unit_cell):
-      adjacent_cell: lux_engine_cell.Cell
+      adjacent_cell: luxai2021.game.cell.Cell
 
       for adjacent_unit in adjacent_cell.units.values():
-        adjacent_unit: lux_engine_unit.Unit
+        adjacent_unit: luxai2021.game.unit.Unit
 
         if adjacent_unit.team != team:
           continue
@@ -151,7 +151,7 @@ considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
 
     
 
-    if unit.type == lux_engine_unit.UNIT_TYPES.WORKER:
+    if unit.type == luxai2021.game.unit.UNIT_TYPES.WORKER:
       if not unit_cell.is_city_tile():
         team_valid_cell_actions.append((CELL_ACTION_UNIT_BUILD_CITY, unit.pos.y, unit.pos.x))
 
@@ -169,7 +169,8 @@ considered_units_map: List[List[lux_engine_unit.Unit]]) -> List[Tuple]:
 
 
 
-def is_move_action_valid(game: lux_engine_game.Game, team: int, pos: lux_engine_position.Position, dir: lux_engine_game.DIRECTIONS) -> bool:
+def is_move_action_valid(game: luxai2021.game.game.Game, team: int,
+pos: luxai2021.game.position.Position, dir: luxai2021.game.game.DIRECTIONS) -> bool:
   target_pos = pos.translate(dir, 1)
 
 
@@ -184,7 +185,7 @@ def is_move_action_valid(game: lux_engine_game.Game, team: int, pos: lux_engine_
 
 
 
-  cell: lux_engine_cell.Cell = game.map.get_cell_by_pos(target_pos)
+  cell: luxai2021.game.cell.Cell = game.map.get_cell_by_pos(target_pos)
 
 
 
@@ -199,7 +200,7 @@ def is_move_action_valid(game: lux_engine_game.Game, team: int, pos: lux_engine_
 
 
 
-def get_cell_action_mask(game: lux_engine_game.Game, valid_cell_actions):
+def get_cell_action_mask(game: luxai2021.game.game.Game, valid_cell_actions):
   cell_action_mask = np.zeros((CELL_ACTION_COUNT, game.map.height, game.map.width), np.float32)
 
 
@@ -218,3 +219,114 @@ def normalize_cell_action_probs(cell_action_probs, cell_action_mask):
   cell_action_probs /= max(1.0, np.sum(cell_action_probs).item())
 
   return cell_action_probs
+
+
+
+
+
+
+
+
+
+
+def get_team_cell_actions(game: luxai2021.game.game.Game, team: int,
+team_engine_actions: List[luxai2021.game.actions.Action],
+considered_units_map: List[List[luxai2021.game.unit.Unit]]):
+  city_tile_actions_map = {}
+
+  for city in game.cities.values():
+    city: luxai2021.game.city.City
+
+    if city.team != team:
+      continue
+
+    for city_cell in city.city_cells:
+      city_cell: luxai2021.game.cell.Cell
+      city_tile: luxai2021.game.city.CityTile = city_cell.city_tile
+
+      if not city_tile.can_act():
+        continue
+
+      city_tile_actions_map[(city_tile.pos.y, city_tile.pos.x)] = \
+        CELL_ACTION_CITY_TILE_DO_NOTHING
+
+
+
+
+  unit_actions_map = {}
+
+  for unit in game.get_teams_units(team).values():
+    unit: luxai2021.game.unit.Unit
+
+    if not unit.can_act():
+      continue
+
+    if unit != considered_units_map[unit.pos.y][unit.pos.x]:
+      continue
+
+    unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
+
+
+
+
+  for team_engine_action in team_engine_actions:
+    is_city_tile = team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_WORKER \
+      or team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_CART \
+      or team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.RESEARCH
+
+    if is_city_tile:
+      if team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_WORKER:
+        city_tile_actions_map[(team_engine_action.y, team_engine_action.x)] = \
+          CELL_ACTION_CITY_TILE_BUILD_WORKER
+      elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_CART:
+        city_tile_actions_map[(team_engine_action.y, team_engine_action.x)] = \
+          CELL_ACTION_CITY_TILE_BUILD_CART
+      elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.RESEARCH:
+        city_tile_actions_map[(team_engine_action.y, team_engine_action.x)] = \
+          CELL_ACTION_CITY_TILE_RESEARCH
+      else:
+        raise Exception('Unknown city tile action.')
+    else:
+      if team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.TRANSFER:
+        unit: luxai2021.game.unit.Unit = game.get_unit(team_engine_action.team, team_engine_action.source_id)
+      else:
+        unit: luxai2021.game.unit.Unit = game.get_unit(team_engine_action.team, team_engine_action.unit_id)
+
+      if unit != considered_units_map[unit.pos.y][unit.pos.x]:
+        continue
+
+      if team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.MOVE:
+        if team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.CENTER:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
+        elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.NORTH:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_NORTH
+        elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.WEST:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_WEST
+        elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.SOUTH:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_SOUTH
+        elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.EAST:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_EAST
+        else:
+          raise Exception('Unknown unit action.')
+      elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.TRANSFER:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_SMART_TRANSFER
+      elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_CITY:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_BUILD_CITY
+      elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.PILLAGE:
+          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_PILLAGE
+      else:
+        raise Exception('Unknown unit action.')
+
+
+
+
+  team_cell_actions = np.zeros((CELL_ACTION_COUNT,
+    game.map.height, game.map.width), np.float32)
+
+  for city_tile_pos, city_tile_action in city_tile_actions_map.items():
+    team_cell_actions[(city_tile_action, ) + city_tile_pos] = 1.0
+
+  for unit_pos, unit_action in unit_actions_map.items():
+    team_cell_actions[(unit_action, ) + unit_pos] = 1.0
+
+  return team_cell_actions
