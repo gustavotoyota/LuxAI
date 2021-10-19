@@ -20,7 +20,7 @@ class LuxEpisodeDataset(torch.utils.data.dataset.Dataset):
   def __len__(self):
     samples = lux_utils.load_lz4_pickle(self.file_path)
 
-    return samples.shape[0]
+    return samples[0].shape[0]
 
 
 
@@ -28,15 +28,15 @@ class LuxEpisodeDataset(torch.utils.data.dataset.Dataset):
   def __getitem__(self, index):
     samples = lux_utils.load_lz4_pickle(self.file_path)
 
-    return samples[index]
+    return samples[0][index], samples[1][index], samples[2][index]
 
 
 
 
-def get_dataset(map_size):
+def get_dataset(dir_path, map_size):
   episode_datasets = []
 
-  dir_path = f'samples/{map_size}'
+  dir_path = f'{dir_path}/{map_size}'
 
   for file_name in os.listdir(dir_path):
     file_path = f'{dir_path}/{file_name}'
