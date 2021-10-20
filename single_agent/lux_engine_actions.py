@@ -18,6 +18,14 @@ import lux_cell_actions
 
 
 
+CITY_ENGINE_ACTIONS = {
+  luxai2021.game.constants.Constants.ACTIONS.BUILD_WORKER,
+  luxai2021.game.constants.Constants.ACTIONS.BUILD_CART,
+  luxai2021.game.constants.Constants.ACTIONS.RESEARCH }
+
+
+
+
 
 def is_engine_action_valid(engine_action: luxai2021.game.actions.Action,
 game: luxai2021.game.game.Game, engine_actions: List[luxai2021.game.actions.Action]):
@@ -27,10 +35,7 @@ game: luxai2021.game.game.Game, engine_actions: List[luxai2021.game.actions.Acti
 
 
 
-  if engine_action.action in {
-  luxai2021.game.constants.Constants.ACTIONS.BUILD_WORKER,
-  luxai2021.game.constants.Constants.ACTIONS.BUILD_CART,
-  luxai2021.game.constants.Constants.ACTIONS.RESEARCH }:
+  if engine_action.action in CITY_ENGINE_ACTIONS:
     if not game.map.get_cell(engine_action.x, engine_action.y).city_tile:
       return False
   else:

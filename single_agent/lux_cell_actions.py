@@ -8,11 +8,17 @@ import luxai2021.game.city
 import luxai2021.game.game
 import luxai2021.game.position
 import luxai2021.game.unit
+import luxai2021.game.constants
 
 
 
 
 import numpy as np
+
+
+
+
+import lux_engine_actions
 
 
 
@@ -168,7 +174,6 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
 
 
 
-
 def is_move_action_valid(game: luxai2021.game.game.Game, team: int,
 pos: luxai2021.game.position.Position, dir: luxai2021.game.game.DIRECTIONS) -> bool:
   target_pos = pos.translate(dir, 1)
@@ -224,15 +229,12 @@ def normalize_cell_action_probs(cell_action_probs, cell_action_mask):
 
 
 
-
-
-
-
-
 def get_team_cell_actions(game: luxai2021.game.game.Game, team: int,
 team_engine_actions: List[luxai2021.game.actions.Action],
 considered_units_map: List[List[luxai2021.game.unit.Unit]]):
-  city_tile_actions_map = {}
+  # Dictionary for city tile actions
+
+  city_tile_actions_dict = {}
 
   for city in game.cities.values():
     city: luxai2021.game.city.City
@@ -247,13 +249,14 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
       if not city_tile.can_act():
         continue
 
-      city_tile_actions_map[(city_tile.pos.y, city_tile.pos.x)] = \
+      city_tile_actions_dict[(city_tile.pos.y, city_tile.pos.x)] = \
         CELL_ACTION_CITY_TILE_DO_NOTHING
 
 
 
+  # Dictionary for unit actions
 
-  unit_actions_map = {}
+  unit_actions_dict = {}
 
   for unit in game.get_teams_units(team).values():
     unit: luxai2021.game.unit.Unit
@@ -264,25 +267,23 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
     if unit != considered_units_map[unit.pos.y][unit.pos.x]:
       continue
 
-    unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
+    unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
 
 
 
 
   for team_engine_action in team_engine_actions:
-    is_city_tile = team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_WORKER \
-      or team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_CART \
-      or team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.RESEARCH
+    is_city_tile = team_engine_action.action in lux_engine_actions.CITY_ENGINE_ACTIONS
 
     if is_city_tile:
       if team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_WORKER:
-        city_tile_actions_map[(team_engine_action.y, team_engine_action.x)] = \
+        city_tile_actions_dict[(team_engine_action.y, team_engine_action.x)] = \
           CELL_ACTION_CITY_TILE_BUILD_WORKER
       elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_CART:
-        city_tile_actions_map[(team_engine_action.y, team_engine_action.x)] = \
+        city_tile_actions_dict[(team_engine_action.y, team_engine_action.x)] = \
           CELL_ACTION_CITY_TILE_BUILD_CART
       elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.RESEARCH:
-        city_tile_actions_map[(team_engine_action.y, team_engine_action.x)] = \
+        city_tile_actions_dict[(team_engine_action.y, team_engine_action.x)] = \
           CELL_ACTION_CITY_TILE_RESEARCH
       else:
         raise Exception('Unknown city tile action.')
@@ -297,36 +298,41 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
 
       if team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.MOVE:
         if team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.CENTER:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
         elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.NORTH:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_NORTH
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_NORTH
         elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.WEST:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_WEST
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_WEST
         elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.SOUTH:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_SOUTH
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_SOUTH
         elif team_engine_action.direction == luxai2021.game.constants.Constants.DIRECTIONS.EAST:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_EAST
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_MOVE_EAST
         else:
-          raise Exception('Unknown unit action.')
+          raise Exception('Unknown unit move action.')
       elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.TRANSFER:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_SMART_TRANSFER
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_SMART_TRANSFER
       elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.BUILD_CITY:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_BUILD_CITY
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_BUILD_CITY
       elif team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.PILLAGE:
-          unit_actions_map[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_PILLAGE
+          unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_PILLAGE
       else:
         raise Exception('Unknown unit action.')
 
 
 
 
+  # Fill the matrix of cell actions of the team
+
   team_cell_actions = np.zeros((CELL_ACTION_COUNT,
     game.map.height, game.map.width), np.float32)
 
-  for city_tile_pos, city_tile_action in city_tile_actions_map.items():
+  for city_tile_pos, city_tile_action in city_tile_actions_dict.items():
     team_cell_actions[(city_tile_action, ) + city_tile_pos] = 1.0
 
-  for unit_pos, unit_action in unit_actions_map.items():
+  for unit_pos, unit_action in unit_actions_dict.items():
     team_cell_actions[(unit_action, ) + unit_pos] = 1.0
+
+
+
 
   return team_cell_actions
