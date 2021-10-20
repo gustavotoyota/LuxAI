@@ -31,7 +31,7 @@ import hdf5plugin
 
 
 if __name__ == '__main__':
-  map_size = 12
+  map_size = 32
 
 
 
@@ -52,9 +52,8 @@ if __name__ == '__main__':
 
   # Get model
 
-  model_dir_path = 'models'
-  model_stem_path = f'{model_dir_path}/model_{map_size}'
-  model_file_path = f'{model_stem_path}.pt'
+  model_dir_path = f'models'
+  model_file_path = f'{model_dir_path}/model_{map_size}.pt'
 
   if os.path.isfile(model_file_path):
     model = torch.load(model_file_path)
@@ -82,9 +81,13 @@ if __name__ == '__main__':
 
   dataloader = torch.utils.data.dataloader.DataLoader(
     dataset=dataset,
-    batch_size=128,
-    shuffle=True,
+    sampler=torch.utils.data.dataloader.BatchSampler(
+      sampler=torch.utils.data.dataloader.RandomSampler(dataset),
+      batch_size=256,
+      drop_last=True,
+    ),
     pin_memory=True,
+    num_workers=2,
   )
 
 
@@ -102,12 +105,16 @@ if __name__ == '__main__':
 
   while True:
     for minibatch in dataloader:
-      standardized_input = (torch.Tensor(minibatch[0]).cuda() - observation_mean) / observation_std
+      observation = torch.Tensor(minibatch[0]).cuda().squeeze(0)
+      policy_target = torch.Tensor(minibatch[1]).cuda().squeeze(0)
+      value_target = torch.Tensor(minibatch[2]).cuda().squeeze(0)
 
-      action_probs, values = model(standardized_input, False)
+      observation = (observation - observation_mean) / observation_std
+
+      action_probs, values = model(observation, False)
       
-      policy_loss = F.binary_cross_entropy_with_logits(action_probs, torch.Tensor(minibatch[1]).cuda())
-      value_loss = F.mse_loss(values, torch.Tensor(minibatch[2]).cuda())
+      policy_loss = F.binary_cross_entropy_with_logits(action_probs, policy_target)
+      value_loss = F.mse_loss(values, value_target)
 
       loss = policy_loss + value_loss
       print('Loss:', loss.item())
@@ -116,6 +123,11 @@ if __name__ == '__main__':
       loss.backward()
       optimizer.step()
 
+
+
+    os.makedirs(model_dir_path, exist_ok=True)
     torch.save(model, model_file_path)
+
+
     
     print('Finished batch')
