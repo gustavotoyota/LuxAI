@@ -81,11 +81,13 @@ if __name__ == '__main__':
 
   dataloader = torch.utils.data.dataloader.DataLoader(
     dataset=dataset,
-    sampler=torch.utils.data.dataloader.BatchSampler(
-      sampler=torch.utils.data.dataloader.RandomSampler(dataset),
-      batch_size=256,
-      drop_last=True,
-    ),
+    batch_size=256,
+    shuffle=True,
+    # sampler=torch.utils.data.dataloader.BatchSampler(
+    #   sampler=torch.utils.data.dataloader.RandomSampler(dataset),
+    #   batch_size=256,
+    #   drop_last=True,
+    # ),
     pin_memory=True,
     num_workers=2,
   )

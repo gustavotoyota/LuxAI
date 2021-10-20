@@ -25,12 +25,12 @@ class HDF5Dataset(torch.utils.data.dataset.Dataset):
 
 
   def __getitem__(self, index):
-    sorted_indices = sorted(index)
+    # index = sorted(index)
 
     result = (
-      self.hdf5_inputs[sorted_indices],
-      self.hdf5_actions[sorted_indices],
-      self.hdf5_values[sorted_indices]
+      self.hdf5_inputs[index],
+      self.hdf5_actions[index],
+      self.hdf5_values[index]
     )
 
     # original_indices = np.argsort(index)
