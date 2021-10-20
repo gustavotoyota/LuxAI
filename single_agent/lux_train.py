@@ -1,13 +1,10 @@
 import os
 
-import numpy as np
 
 
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 
 import torch.utils.data.dataloader
 
@@ -17,9 +14,7 @@ import adabelief_pytorch
 
 
 import lux_datasets
-import lux_model
-import lux_utils
-import lux_inputs
+import lux_neural_net
 
 
 
@@ -31,21 +26,7 @@ import hdf5plugin
 
 
 if __name__ == '__main__':
-  map_size = 32
-
-
-
-
-  # Load input mean and standard deviation
-
-  mean_std = lux_utils.load_lz4_pickle('lux_mean_std.pickle.lz4')
-
-  observation_mean = torch.Tensor(mean_std[0]) \
-    .reshape((lux_inputs.INPUT_COUNT, 1, 1)) \
-    .broadcast_to((lux_inputs.INPUT_COUNT, map_size, map_size))
-  observation_std = torch.Tensor(mean_std[1]) \
-    .reshape((lux_inputs.INPUT_COUNT, 1, 1)) \
-    .broadcast_to((lux_inputs.INPUT_COUNT, map_size, map_size))
+  map_size = 12
 
 
 
@@ -58,7 +39,7 @@ if __name__ == '__main__':
   if os.path.isfile(model_file_path):
     model = torch.load(model_file_path)
   else:
-    model = lux_model.LuxModel(map_size, map_size)
+    model = lux_neural_net.LuxNet(map_size, map_size)
 
 
 
@@ -99,8 +80,6 @@ if __name__ == '__main__':
 
   if torch.cuda.is_available():
     model = model.cuda()
-    observation_mean = observation_mean.cuda()
-    observation_std = observation_std.cuda()
 
 
 
@@ -110,8 +89,6 @@ if __name__ == '__main__':
       observation = torch.Tensor(minibatch[0]).cuda().squeeze(0)
       policy_target = torch.Tensor(minibatch[1]).cuda().squeeze(0)
       value_target = torch.Tensor(minibatch[2]).cuda().squeeze(0)
-
-      observation = (observation - observation_mean) / observation_std
 
       action_probs, values = model(observation, False)
       

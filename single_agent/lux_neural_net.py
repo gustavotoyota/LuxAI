@@ -7,6 +7,7 @@ import torch.nn.functional as F
 
 import lux_inputs
 import lux_cell_actions
+import lux_utils
 
 
 
@@ -44,7 +45,7 @@ class ResidualBlock(nn.Module):
 
 
 
-class LuxModel(nn.Module):
+class LuxNet(nn.Module):
   def __init__(self, width, height):
     super().__init__()
 
@@ -109,11 +110,38 @@ class LuxModel(nn.Module):
     self.policy_bn1 = nn.BatchNorm2d(self.policy_num_channels)
 
     self.policy_conv2 = nn.Conv2d(self.policy_num_channels, lux_cell_actions.CELL_ACTION_COUNT, 1)
+
+
+
+    
+    # Load input mean and standard deviation
+
+    self.load_mean_std()
+    
+  
+
+
+  def load_mean_std(self):
+    mean_std = lux_utils.load_lz4_pickle('lux_mean_std.pickle.lz4')
+
+    self.input_mean = torch.Tensor(mean_std[0]) \
+      .reshape((lux_inputs.INPUT_COUNT, 1, 1)) \
+      .broadcast_to((lux_inputs.INPUT_COUNT, self.width, self.height)).cuda()
+    self.input_std = torch.Tensor(mean_std[1]) \
+      .reshape((lux_inputs.INPUT_COUNT, 1, 1)) \
+      .broadcast_to((lux_inputs.INPUT_COUNT, self.width, self.height)).cuda()
     
 
   
 
   def forward(self, x, with_sigmoid=True):
+    # Standardize input
+
+    x = (x - self.input_mean) / self.input_std
+
+
+
+    
     # Input layers
 
     out = self.in_conv(x)
