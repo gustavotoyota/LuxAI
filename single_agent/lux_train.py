@@ -24,16 +24,14 @@ import lux_inputs
 
 
 
+import hdf5plugin
+
+
+
+
 
 if __name__ == '__main__':
   map_size = 12
-
-
-
-
-  # if torch.cuda.is_available():
-  #   torch.set_default_tensor_type(torch.cuda.FloatTensor)
-
 
 
 
@@ -66,6 +64,34 @@ if __name__ == '__main__':
 
 
 
+  # Create optimizer
+
+  optimizer = adabelief_pytorch.AdaBelief(
+    model.parameters(),
+    lr=1e-3,
+    weight_decay=1e-4,
+    print_change_log=False
+  )
+
+
+
+
+  # Data loader
+
+  dataset = lux_datasets.HDF5Dataset(f'samples/{map_size}.h5')
+
+  dataloader = torch.utils.data.dataloader.DataLoader(
+    dataset=dataset,
+    batch_size=128,
+    shuffle=True,
+    pin_memory=True,
+  )
+
+
+
+
+  # CUDA
+
   if torch.cuda.is_available():
     model = model.cuda()
     observation_mean = observation_mean.cuda()
@@ -74,52 +100,22 @@ if __name__ == '__main__':
 
 
 
-  # Create optimizer
-
-  # optimizer = optim.Adam(model.parameters(), lr=3e-4, weight_decay=1e-5)
-  # optimizer = optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-5)
-  # optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
-  optimizer = adabelief_pytorch.AdaBelief(
-    model.parameters(), weight_decay=1e-4, print_change_log=False)
-
-
-
-
-  # Data loader
-
-  dataset = lux_datasets.get_dataset('samples', map_size)
-
-  dataloader = torch.utils.data.dataloader.DataLoader(
-    dataset=dataset,
-    batch_size=256,
-    shuffle=True,
-    pin_memory=True,
-    #num_workers=1,
-  )
-
-
-
-
-  avg_loss = 0.0
-
   while True:
     for minibatch in dataloader:
       standardized_input = (torch.Tensor(minibatch[0]).cuda() - observation_mean) / observation_std
 
       action_probs, values = model(standardized_input, False)
       
-      policy_loss = F.binary_cross_entropy_with_logits(action_probs, torch.Tensor(minibatch[1]))
-      value_loss = F.mse_loss(values, torch.Tensor(minibatch[2]))
+      policy_loss = F.binary_cross_entropy_with_logits(action_probs, torch.Tensor(minibatch[1]).cuda())
+      value_loss = F.mse_loss(values, torch.Tensor(minibatch[2]).cuda())
 
       loss = policy_loss + value_loss
-
-      avg_loss = avg_loss * 0.9 + loss.item() * 0.1
-
-      print(avg_loss)
+      print('Loss:', loss.item())
 
       optimizer.zero_grad()
       loss.backward()
       optimizer.step()
 
-
-    torch.save(model, f'{model_stem_path}_{round(avg_loss, 5)}.pt')
+    torch.save(model, model_file_path)
+    
+    print('Finished batch')
