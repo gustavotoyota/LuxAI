@@ -63,7 +63,7 @@ CELL_ACTION_UNIT_PILLAGE = add_cell_action()
 
 
 def get_team_valid_cell_actions(engine_game: luxai2021.game.game.Game, team: int,
-considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
+considered_units_map: np.array) -> List[Tuple]:
   team_valid_cell_actions = []
   
 
@@ -110,7 +110,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
 
 
 
-    if considered_units_map[unit.pos.y][unit.pos.x] != unit:
+    if considered_units_map[unit.pos.y, unit.pos.x] != unit:
       continue
 
 
@@ -230,8 +230,7 @@ def normalize_cell_action_probs(cell_action_probs, cell_action_mask):
 
 
 def get_team_cell_actions(game: luxai2021.game.game.Game, team: int,
-team_engine_actions: List[luxai2021.game.actions.Action],
-considered_units_map: List[List[luxai2021.game.unit.Unit]]):
+team_engine_actions: List[luxai2021.game.actions.Action], considered_units_map: np.array):
   # Dictionary for city tile actions
 
   city_tile_actions_dict = {}
@@ -264,7 +263,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
     if not unit.can_act():
       continue
 
-    if unit != considered_units_map[unit.pos.y][unit.pos.x]:
+    if unit != considered_units_map[unit.pos.y, unit.pos.x]:
       continue
 
     unit_actions_dict[(unit.pos.y, unit.pos.x)] = CELL_ACTION_UNIT_DO_NOTHING
@@ -293,7 +292,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
       else:
         unit: luxai2021.game.unit.Unit = game.get_unit(team_engine_action.team, team_engine_action.unit_id)
 
-      if unit != considered_units_map[unit.pos.y][unit.pos.x]:
+      if unit != considered_units_map[unit.pos.y, unit.pos.x]:
         continue
 
       if team_engine_action.action == luxai2021.game.constants.Constants.ACTIONS.MOVE:

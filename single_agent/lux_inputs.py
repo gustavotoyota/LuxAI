@@ -108,8 +108,8 @@ INPUT_GAME_CITY_TILE_RATIO = add_input()
 
 
 
-def get_team_observation(engine_game: luxai2021.game.game.Game, team: int,
-considered_units_map: List[List[luxai2021.game.unit.Unit]]):
+def get_team_observation(engine_game: luxai2021.game.game.Game,
+team: int, considered_units_map: np.array):
   team_observation = np.zeros((INPUT_COUNT, engine_game.map.height, engine_game.map.width), np.float32)
 
 
@@ -171,7 +171,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
       
       # Unit
 
-      considered_unit: luxai2021.game.unit.Unit = considered_units_map[y][x]
+      considered_unit: luxai2021.game.unit.Unit = considered_units_map[y, x]
 
       if considered_unit:
         if considered_unit.is_worker():

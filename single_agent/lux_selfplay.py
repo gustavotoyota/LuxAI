@@ -26,10 +26,11 @@ def run_selfplay_match(map_size: int, model: lux_model.LuxModel):
   mcts = lux_mcts.MCTS(engine_game, model)
 
   while not engine_game.match_over():
-    team_actions = mcts.run(engine_game)
+    team_actions = mcts.run()
     
     considered_units_map = lux_units.get_considered_units_map(engine_game)
-    engine_actions = lux_engine_actions.get_team_engine_actions(engine_game, team_actions, considered_units_map)
+    engine_actions = lux_engine_actions.get_engine_actions(
+      team_actions, engine_game, considered_units_map)
 
     engine_game.run_turn_with_actions(engine_actions)
 

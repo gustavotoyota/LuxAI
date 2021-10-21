@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, Tuple
 
+import numpy as np
 
 
 
@@ -76,8 +77,26 @@ game: luxai2021.game.game.Game, engine_actions: List[luxai2021.game.actions.Acti
 
 
 
+
+def get_engine_actions(team_actions: Tuple[list, list],
+engine_game: luxai2021.game.game.Game, considered_units_map: np.array) -> \
+Tuple[List[luxai2021.game.actions.Action], List[luxai2021.game.actions.Action]]:
+  engine_actions = []
+
+
+  for team in range(2):
+    engine_actions += get_team_engine_actions(
+      team_actions[team], engine_game, team, considered_units_map)
+
+
+  return engine_actions
+
+
+
+
+
 def get_team_engine_actions(cell_actions: List[tuple], engine_game: luxai2021.game.game.Game,
-team: int, considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[luxai2021.game.actions.Action]:
+team: int, considered_units_map: np.array) -> List[luxai2021.game.actions.Action]:
   team_engine_actions = []
 
 
@@ -97,7 +116,7 @@ team: int, considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[l
 
 
 def get_team_engine_action(cell_action: tuple, game: luxai2021.game.game.Game,
-team: int, considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> luxai2021.game.actions.Action:
+team: int, considered_units_map: np.array) -> luxai2021.game.actions.Action:
   team_engine_action: luxai2021.game.actions.Action = None
 
 
@@ -117,7 +136,7 @@ team: int, considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> luxai2
   
   # Unit actions
 
-  considered_unit = considered_units_map[cell_action[1]][cell_action[2]]
+  considered_unit = considered_units_map[cell_action[1:]]
 
   if considered_unit:
     if cell_action[0] == lux_cell_actions.CELL_ACTION_UNIT_DO_NOTHING:
