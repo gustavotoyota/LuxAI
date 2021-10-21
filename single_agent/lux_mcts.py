@@ -27,7 +27,7 @@ class MCTS():
     self.model: lux_model.LuxModel = model
 
     self.num_iterations = 100
-    self.c_puct = 1.0
+    self.c_puct = 3.0
 
     self.reset(engine_game)
 
@@ -267,7 +267,7 @@ class MCTSNode():
 
       adjusted_prior_probs = self.mcts.c_puct * self.children_prior_probs[team] * \
         math.sqrt(num_parent_visits) / (1.0 + self.children_solo_num_visits[team])
-      action_ucb_scores = (-team * 2.0 + 1.0) * mean_action_values * adjusted_prior_probs
+      action_ucb_scores = (-team * 2.0 + 1.0) * mean_action_values + adjusted_prior_probs
 
       child_index[team] = np.argmax(action_ucb_scores)
 
