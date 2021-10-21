@@ -9,24 +9,18 @@ import luxai2021.game.unit
 
 
 
-def get_considered_units_map(game: luxai2021.game.game.Game) -> List[List[luxai2021.game.unit.Unit]]:
-  considered_units_map = []
-
-
-
-
-  for _ in range(game.map.height):
-    considered_units_row = []
-    considered_units_map.append(considered_units_row)
-
-    for _ in range(game.map.width):
-      considered_units_row.append(None)
+def get_considered_units_map(engine_game: luxai2021.game.game.Game) -> List[List[luxai2021.game.unit.Unit]]:
+  considered_units_map = [
+    [
+      [None] for _ in range(engine_game.map.width)
+    ] for _ in range(engine_game.map.height)
+  ]
 
 
 
   for team in range(2):
-    for unit in game.get_teams_units(team).values():
-      unit: Unit
+    for unit in engine_game.get_teams_units(team).values():
+      unit: luxai2021.game.unit.Unit
 
       if considered_units_map[unit.pos.y][unit.pos.x]:
         continue

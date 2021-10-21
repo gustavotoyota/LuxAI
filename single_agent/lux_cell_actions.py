@@ -62,7 +62,7 @@ CELL_ACTION_UNIT_PILLAGE = add_cell_action()
 
 
 
-def get_team_valid_cell_actions(game: luxai2021.game.game.Game, team: int,
+def get_team_valid_cell_actions(engine_game: luxai2021.game.game.Game, team: int,
 considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
   team_valid_cell_actions = []
   
@@ -70,7 +70,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
 
   # Cities
 
-  for city in game.cities.values():
+  for city in engine_game.cities.values():
     city: luxai2021.game.city.City
 
 
@@ -93,11 +93,11 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
 
       team_valid_cell_actions.append((CELL_ACTION_CITY_TILE_DO_NOTHING, city_tile.pos.y, city_tile.pos.x))
 
-      if not game.worker_unit_cap_reached(team):
+      if not engine_game.worker_unit_cap_reached(team):
         team_valid_cell_actions.append((CELL_ACTION_CITY_TILE_BUILD_WORKER, city_tile.pos.y, city_tile.pos.x))
         team_valid_cell_actions.append((CELL_ACTION_CITY_TILE_BUILD_CART, city_tile.pos.y, city_tile.pos.x))
 
-      if game.state["teamStates"][team]["researchPoints"] < 200:
+      if engine_game.state["teamStates"][team]["researchPoints"] < 200:
         team_valid_cell_actions.append((CELL_ACTION_CITY_TILE_RESEARCH, city_tile.pos.y, city_tile.pos.x))
 
 
@@ -105,7 +105,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
 
   # Units
 
-  for unit in game.get_teams_units(team).values():
+  for unit in engine_game.get_teams_units(team).values():
     unit: luxai2021.game.unit.Unit
 
 
@@ -122,13 +122,13 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
 
     team_valid_cell_actions.append((CELL_ACTION_UNIT_DO_NOTHING, unit.pos.y, unit.pos.x))
     
-    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.NORTH):
+    if is_move_action_valid(engine_game, team, unit.pos, luxai2021.game.game.DIRECTIONS.NORTH):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_NORTH, unit.pos.y, unit.pos.x))
-    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.WEST):
+    if is_move_action_valid(engine_game, team, unit.pos, luxai2021.game.game.DIRECTIONS.WEST):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_WEST, unit.pos.y, unit.pos.x))
-    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.SOUTH):
+    if is_move_action_valid(engine_game, team, unit.pos, luxai2021.game.game.DIRECTIONS.SOUTH):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_SOUTH, unit.pos.y, unit.pos.x))
-    if is_move_action_valid(game, team, unit.pos, luxai2021.game.game.DIRECTIONS.EAST):
+    if is_move_action_valid(engine_game, team, unit.pos, luxai2021.game.game.DIRECTIONS.EAST):
       team_valid_cell_actions.append((CELL_ACTION_UNIT_MOVE_EAST, unit.pos.y, unit.pos.x))
 
 
@@ -136,9 +136,9 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]) -> List[Tuple]:
 
     # Smart transfer
     
-    unit_cell = game.map.get_cell(unit.pos.x, unit.pos.y)
+    unit_cell = engine_game.map.get_cell(unit.pos.x, unit.pos.y)
 
-    for adjacent_cell in game.map.get_adjacent_cells(unit_cell):
+    for adjacent_cell in engine_game.map.get_adjacent_cells(unit_cell):
       adjacent_cell: luxai2021.game.cell.Cell
 
       for adjacent_unit in adjacent_cell.units.values():

@@ -108,16 +108,16 @@ INPUT_GAME_CITY_TILE_RATIO = add_input()
 
 
 
-def get_team_observation(game: luxai2021.game.game.Game, team: int,
+def get_team_observation(engine_game: luxai2021.game.game.Game, team: int,
 considered_units_map: List[List[luxai2021.game.unit.Unit]]):
-  team_observation = np.zeros((INPUT_COUNT, game.map.height, game.map.width), np.float32)
+  team_observation = np.zeros((INPUT_COUNT, engine_game.map.height, engine_game.map.width), np.float32)
 
 
 
 
-  for y in range(game.map.height):
-    for x in range(game.map.width):
-      cell = game.map.get_cell(x, y)
+  for y in range(engine_game.map.height):
+    for x in range(engine_game.map.width):
+      cell = engine_game.map.get_cell(x, y)
 
 
 
@@ -161,7 +161,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
       city: luxai2021.game.city.City = None
 
       if city_tile:
-        city = game.cities[city_tile.city_id]
+        city = engine_game.cities[city_tile.city_id]
 
         team_observation[INPUT_CITY_FUEL_AMOUNT, y, x] = city.fuel
         team_observation[INPUT_CITY_FUEL_UPKEEP, y, x] = city.get_light_upkeep()
@@ -260,7 +260,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
 
       # Player
 
-      team_state = game.state['teamStates'][team]
+      team_state = engine_game.state['teamStates'][team]
 
       team_observation[INPUT_PLAYER_RESEARCH_POINTS, y, x] = team_state['researchPoints']
       team_observation[INPUT_PLAYER_RESEARCHED_COAL, y, x] = float(team_state['researched']['coal'])
@@ -271,14 +271,14 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
 
       # Game
 
-      team_observation[INPUT_GAME_CURRENT_TURN, y, x] = game.state['turn']
+      team_observation[INPUT_GAME_CURRENT_TURN, y, x] = engine_game.state['turn']
 
 
 
 
-      team_observation[INPUT_GAME_IS_NIGHT, y, x] = float(game.is_night())
+      team_observation[INPUT_GAME_IS_NIGHT, y, x] = float(engine_game.is_night())
       
-      turn_mod_40 = game.state['turn'] % 40
+      turn_mod_40 = engine_game.state['turn'] % 40
 
       if turn_mod_40 < 30:
         team_observation[INPUT_GAME_NIGHT_PERCENT, y, x] = turn_mod_40 / 30.0
@@ -288,7 +288,7 @@ considered_units_map: List[List[luxai2021.game.unit.Unit]]):
 
 
       city_tile_count = [0, 0]
-      for city in game.cities.values():
+      for city in engine_game.cities.values():
         city_tile_count[city.team] += len(city.city_cells)
 
       team_observation[INPUT_GAME_CITY_TILE_RATIO, y, x] = city_tile_count[team] / max(1.0, sum(city_tile_count))
