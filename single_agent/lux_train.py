@@ -6,6 +6,7 @@ import os
 import torch
 import torch.nn.functional as F
 
+import torch.utils.data
 import torch.utils.data.dataloader
 
 import adabelief_pytorch
@@ -49,7 +50,7 @@ if __name__ == '__main__':
   optimizer = adabelief_pytorch.AdaBelief(
     model.parameters(),
     lr=1e-3,
-    weight_decay=1e-4,
+    #weight_decay=1e-5,
     print_change_log=False
   )
 
@@ -58,19 +59,23 @@ if __name__ == '__main__':
 
   # Data loader
 
-  dataset = lux_datasets.HDF5Dataset(f'samples/{map_size}.h5')
+  singleSamplingDataset = lux_datasets.HDF5SingleSamplingDataset(f'samples/{map_size}.h5')
+  batchSamplingDataset = lux_datasets.HDF5BatchDataset(f'samples/{map_size}.h5')
 
   dataloader = torch.utils.data.dataloader.DataLoader(
-    dataset=dataset,
+    dataset=singleSamplingDataset,
     batch_size=256,
     shuffle=True,
+
+    # dataset=batchSamplingDataset,
     # sampler=torch.utils.data.dataloader.BatchSampler(
-    #   sampler=torch.utils.data.dataloader.RandomSampler(dataset),
-    #   batch_size=256,
+    #   sampler=torch.utils.data.dataloader.RandomSampler(batchSamplingDataset),
+    #   batch_size=128,
     #   drop_last=True,
     # ),
+
     pin_memory=True,
-    num_workers=2,
+    # num_workers=2,
   )
 
 

@@ -56,9 +56,9 @@ def analyze_replay(file_path):
 
 
 
-  replay_game: lux.game.Game = lux.game.Game()
-  replay_game._initialize(replay_obj['steps'][0][0]['observation']['updates'])
-  replay_game._update(replay_obj['steps'][0][0]['observation']['updates'])
+  # replay_game: lux.game.Game = lux.game.Game()
+  # replay_game._initialize(replay_obj['steps'][0][0]['observation']['updates'])
+  # replay_game._update(replay_obj['steps'][0][0]['observation']['updates'])
 
 
 
@@ -77,7 +77,7 @@ def analyze_replay(file_path):
 
       # Update replay game
 
-      replay_game._update(step_obj[0]['observation']['updates'])
+      # replay_game._update(step_obj[0]['observation']['updates'])
 
 
 
@@ -123,9 +123,9 @@ def analyze_replay(file_path):
 
       # Validate game state
 
-      if not replay_validate_game(engine_game, replay_game):
-        error = True
-        break
+      # if not replay_validate_game(engine_game, replay_game):
+      #   error = True
+      #   break
 
       
 

@@ -28,11 +28,11 @@ def organize_samples(dir_path):
 
     if not hdf5_datasets:
       hdf5_datasets.append(hdf5_file.create_dataset('inputs', data=samples[0],
-        maxshape=(None, None, None, None), **hdf5plugin.LZ4()))
+        maxshape=(None, ) * len(samples[0].shape), chunks=(1, ) + samples[0].shape[1:], **hdf5plugin.LZ4()))
       hdf5_datasets.append(hdf5_file.create_dataset('actions', data=samples[1],
-        maxshape=(None, None, None, None), **hdf5plugin.LZ4()))
+        maxshape=(None, ) * len(samples[1].shape), chunks=(1, ) + samples[1].shape[1:], **hdf5plugin.LZ4()))
       hdf5_datasets.append(hdf5_file.create_dataset('values', data=samples[2],
-        maxshape=(None, None), **hdf5plugin.LZ4()))
+        maxshape=(None, ) * len(samples[2].shape), chunks=(1, ) + samples[2].shape[1:], **hdf5plugin.LZ4()))
     else:
       for i in range(3):
         hdf5_datasets[i].resize((hdf5_datasets[i].shape[0] + samples[i].shape[0]), axis=0)
