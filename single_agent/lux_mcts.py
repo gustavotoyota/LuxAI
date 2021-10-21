@@ -23,11 +23,12 @@ import lux_actions
 
 
 class MCTS():
-  def __init__(self, engine_game: luxai2021.game.game.Game, model: lux_model.LuxModel):
+  def __init__(self, engine_game: luxai2021.game.game.Game,
+  model: lux_model.LuxModel, num_iterations: int = 100, c_puct: float = 1.0):
     self.model: lux_model.LuxModel = model
 
-    self.num_iterations = 100
-    self.c_puct = 1.0
+    self.num_iterations = num_iterations
+    self.c_puct = c_puct
 
     self.reset(engine_game)
 
