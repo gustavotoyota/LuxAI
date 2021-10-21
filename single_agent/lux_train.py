@@ -14,7 +14,7 @@ import adabelief_pytorch
 
 
 import lux_datasets
-import lux_neural_net
+import lux_model
 
 
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
   if os.path.isfile(model_file_path):
     model = torch.load(model_file_path)
   else:
-    model = lux_neural_net.LuxNet(map_size, map_size)
+    model = lux_model.LuxModel(map_size, map_size)
 
 
 

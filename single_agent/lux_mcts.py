@@ -13,7 +13,7 @@ import luxai2021.game.game
 
 
 
-import lux_neural_net
+import lux_model
 import lux_units
 import lux_engine_actions
 import lux_inputs
@@ -23,13 +23,13 @@ import lux_actions
 
 
 class MCTS():
-  def __init__(self, neural_net: lux_neural_net.LuxNet):
-    self.neural_net: lux_neural_net.LuxNet = neural_net
+  def __init__(self, engine_game: luxai2021.game.game.Game, model: lux_model.LuxModel):
+    self.model: lux_model.LuxModel = model
 
     self.num_iterations = 100
     self.c_puct = 1.0
 
-    self.reset()
+    self.reset(engine_game)
 
 
 
@@ -171,7 +171,7 @@ class MCTSNode():
       observation = lux_inputs.get_team_observation(
         self.engine_game, team, considered_units_map)
       
-      cell_action_probs, team_values[team] = self.mcts.neural_net(observation)
+      cell_action_probs, team_values[team] = self.mcts.model(observation)
 
       valid_cell_actions = lux_cell_actions.get_team_valid_cell_actions(
         self.engine_game, team, considered_units_map)

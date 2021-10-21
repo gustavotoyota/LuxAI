@@ -45,7 +45,7 @@ class ResidualBlock(nn.Module):
 
 
 
-class LuxNet(nn.Module):
+class LuxModel(nn.Module):
   def __init__(self, width, height):
     super().__init__()
 
