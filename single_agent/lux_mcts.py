@@ -121,7 +121,7 @@ class MCTS():
     # Get value from leaf node
 
     if node.engine_game.match_over():
-      leaf_value = float(node.engine_game.get_winning_team() == 0)
+      leaf_value = float(node.engine_game.get_winning_team() == 0) * 2.0 - 1.0
     else:
       leaf_value = node.expand()
 
