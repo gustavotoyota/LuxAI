@@ -27,7 +27,7 @@ class MCTS():
     self.model: lux_model.LuxModel = model
 
     self.num_iterations = 100
-    self.c_puct = 3.0
+    self.c_puct = 1.0
 
     self.reset(engine_game)
 
