@@ -90,10 +90,10 @@ if __name__ == '__main__':
 
 
   while True:
-    for minibatch in dataloader:
-      observation = torch.Tensor(minibatch[0]).cuda().squeeze(0)
-      policy_target = torch.Tensor(minibatch[1]).cuda().squeeze(0)
-      value_target = torch.Tensor(minibatch[2]).cuda().squeeze(0)
+    for observation, policy_target, value_target in dataloader:
+      observation = torch.Tensor(observation).cuda().squeeze(0)
+      policy_target = torch.Tensor(policy_target).cuda().squeeze(0)
+      value_target = torch.Tensor(value_target).cuda().squeeze(0)
 
       action_probs, values = model(observation, False)
       
